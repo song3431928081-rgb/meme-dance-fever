@@ -386,9 +386,23 @@ let bossAppearAt = 25; // seconds
 let replayFrames = []; // capture for replay
 let replayCapturing = false;
 let flashT = 0; // screen flash timer
+let lastDiffLevel = 1; // tracks difficulty level for level-up effects
+const DIFF_LEVELS = 10; // number of difficulty levels shown
 
 // ===== QTE NOTE TYPES =====
 const NOTE_TYPES = ['tap','hold','spam','swipe_left','swipe_right','swipe_up','swipe_down'];
+
+// ===== DIFFICULTY SCALING =====
+// Difficulty grows from 1.0 to maxDiff over the song, making notes faster & denser
+const MAX_DIFF = 3.2;     // max speed / density multiplier
+const DIFF_RAMP = 0.85;   // fraction of song duration to reach max difficulty
+
+function getDifficulty() {
+  const progress = Math.min(1, songTime / (songDuration * DIFF_RAMP));
+  // ease-out curve so it ramps up gradually then plateaus
+  const eased = 1 - Math.pow(1 - progress, 2);
+  return 1 + eased * (MAX_DIFF - 1);
+}
 
 function spawnNote() {
   // Weighted: tap most common, then spam, then others
@@ -399,14 +413,15 @@ function spawnNote() {
   else if (r < 0.8) type = 'hold';
   else type = pick(['swipe_left','swipe_right','swipe_up','swipe_down']);
   // Place note near top, falling down to hit zone
-  const lane = rand(0.2, 0.8);
+  const lane = rand(0.15, 0.85);
+  const diff = getDifficulty();
   notes.push({
     id: noteId++,
     type,
     x: W * lane,
     y: -60,
     hitY: H * 0.78,
-    speed: (H * 0.85) / (BEAT_INTERVAL * 4), // 4 beats travel
+    speed: (H * 0.85) / (BEAT_INTERVAL * 4) * diff, // faster as difficulty rises
     spawnedAt: songTime,
     hitWindow: BEAT_INTERVAL * 1.2,
     state: 'falling', // falling, hit, missed
@@ -1429,11 +1444,17 @@ function update(dt, t) {
   if (beatT >= BEAT_INTERVAL) {
     beatT -= BEAT_INTERVAL;
     beat++;
-    // Spawn notes every 2-4 beats
+    // Spawn notes — gap shrinks & count grows with difficulty
     if (beat >= nextSpawnBeat) {
-      const num = 1 + Math.floor(Math.random() * (chaos > 50 ? 2 : 1));
+      const diff = getDifficulty();
+      // Base 1 note, up to ~4 at max difficulty
+      const maxNotes = Math.min(4, 1 + Math.floor(diff * 1.3));
+      const num = 1 + Math.floor(Math.random() * maxNotes);
       for (let i = 0; i < num; i++) spawnNote();
-      nextSpawnBeat = beat + 2 + Math.floor(Math.random() * 3);
+      // Gap: starts at 2-4 beats, shrinks to ~1-2 beats at max difficulty
+      const minGap = Math.max(1, Math.round(4 - diff));
+      const gapRange = Math.max(1, Math.round(3 - diff * 0.8));
+      nextSpawnBeat = beat + minGap + Math.floor(Math.random() * gapRange);
     }
   }
 
@@ -1476,6 +1497,23 @@ function update(dt, t) {
   document.getElementById('score-val').textContent = score;
   document.getElementById('combo-val').textContent = combo;
   document.getElementById('chaos-val').textContent = Math.floor(chaos) + '%';
+
+  // Difficulty bar
+  const diff = getDifficulty();
+  const diffPct = ((diff - 1) / (MAX_DIFF - 1)) * 100;
+  const diffFill = document.getElementById('diff-fill');
+  const diffLabel = document.getElementById('diff-label');
+  if (diffFill) diffFill.style.width = Math.min(100, diffPct) + '%';
+  const curLevel = Math.min(DIFF_LEVELS, Math.floor(diffPct / (100 / DIFF_LEVELS)) + 1);
+  if (diffLabel) diffLabel.textContent = 'LV ' + curLevel + ' · x' + diff.toFixed(1);
+  // Level-up effect
+  if (curLevel > lastDiffLevel) {
+    lastDiffLevel = curLevel;
+    spawnConfetti(CX, H * 0.4);
+    spawnMemeText(CX, H * 0.35, 'LEVEL ' + curLevel + '!', '#ffd93d');
+    flashT = 0.25;
+    sfx('combo');
+  }
 
   // Capture replay frames during chaos peaks / miss moments
   if (replayCapturing && replayFrames.length < 600) {
@@ -1620,6 +1658,7 @@ function startGame() {
   notes = []; nextSpawnBeat = 4;
   particles = [];
   flashT = 0;
+  lastDiffLevel = 1;
   bossActive = false;
   // Build game character from the selected preview character (keep chosen look, reset mutations)
   character = {

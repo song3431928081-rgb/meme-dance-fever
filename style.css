@@ -131,6 +131,24 @@ html, body {
 .chaos-box .stat-label { color:#ff2d95; }
 .stat-val { font-size:20px; font-weight:bold; }
 
+.diff-bar {
+  margin-top:8px; height:14px; border-radius:7px;
+  background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.2);
+  position:relative; overflow:hidden;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.5);
+}
+.diff-fill {
+  height:100%; width:0%;
+  background:linear-gradient(90deg, #39ff14, #ffd93d 50%, #ff2d95);
+  border-radius:7px; transition:width .4s ease;
+  box-shadow:0 0 8px rgba(255,45,149,.6);
+}
+.diff-label {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:bold; letter-spacing:1px; color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+}
+
 .back-btn {
   position:absolute; top:14px; right:16px; z-index:30;
   width:36px; height:36px; border-radius:50%;
