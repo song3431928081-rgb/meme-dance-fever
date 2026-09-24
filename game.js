@@ -172,7 +172,7 @@ const SKINS = [
 function rand(a, b) { return a + Math.random() * (b - a); }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-let character;
+let character = genCharacter();
 function genCharacter() {
   return {
     head: pick(HEADS),
@@ -226,9 +226,15 @@ let replayCapturing = false;
 const NOTE_TYPES = ['tap','hold','spam','swipe_left','swipe_right','swipe_up','swipe_down'];
 
 function spawnNote() {
-  const type = pick(NOTE_TYPES);
+  // Weighted: tap most common, then spam, then others
+  const r = Math.random();
+  let type;
+  if (r < 0.45) type = 'tap';
+  else if (r < 0.65) type = 'spam';
+  else if (r < 0.8) type = 'hold';
+  else type = pick(['swipe_left','swipe_right','swipe_up','swipe_down']);
   // Place note near top, falling down to hit zone
-  const lane = type.startsWith('swipe') ? (type === 'swipe_left' ? 0.2 : type === 'swipe_right' ? 0.8 : type === 'swipe_up' ? 0.5 : 0.5) : rand(0.2, 0.8);
+  const lane = rand(0.2, 0.8);
   notes.push({
     id: noteId++,
     type,
@@ -253,66 +259,37 @@ let activeNote = null;
 function onTap(x, y) {
   if (state !== 'PLAYING') return;
   // Find nearest falling note in hit zone
+  let best = null, bestDy = Infinity;
   for (const n of notes) {
     if (n.state !== 'falling') continue;
     const dy = Math.abs(n.y - n.hitY);
-    if (dy < 80) {
-      if (n.type === 'tap') {
-        hitNote(n, dy);
-        return;
-      }
-      if (n.type === 'spam') {
-        n.spamCount++;
-        spawnPopup(x, y, n.spamCount + '!', '#39ff14');
-        if (n.spamCount >= n.spamNeeded) hitNote(n, 10);
-        return;
-      }
-      if (n.type === 'hold') {
-        n.active = true;
-        return;
-      }
-      if (n.type.startsWith('swipe')) {
-        n.swipeStart = { x, y, t: performance.now() };
-        n.active = true;
-        return;
-      }
-    }
+    if (dy < 100 && dy < bestDy) { bestDy = dy; best = n; }
   }
+  if (!best) return;
+  const n = best;
+  // All note types can be hit by tap — spam needs multiple taps
+  if (n.type === 'spam') {
+    n.spamCount++;
+    spawnPopup(x, y, n.spamCount + '!', '#39ff14');
+    if (n.spamCount >= n.spamNeeded) hitNote(n, 10);
+    return;
+  }
+  // tap, hold, swipe_* — all hit on tap in zone
+  hitNote(n, bestDy);
 }
 function onDrag(x, y) {
   if (state !== 'PLAYING') return;
   for (const n of notes) {
-    if (n.state !== 'falling' || !n.active) continue;
-    if (n.type === 'hold') {
-      n.holdProgress += 0.02;
-      if (n.holdProgress >= n.holdNeeded) hitNote(n, 10);
-    }
-    if (n.swipeStart) {
-      const dx = x - n.swipeStart.x;
-      const dy = y - n.swipeStart.y;
-      const d = Math.sqrt(dx*dx + dy*dy);
-      if (d > 50) {
-        const angle = Math.atan2(dy, dx);
-        let dir;
-        if (Math.abs(dx) > Math.abs(dy)) dir = dx > 0 ? 'swipe_right' : 'swipe_left';
-        else dir = dy > 0 ? 'swipe_down' : 'swipe_up';
-        if (dir === n.type) hitNote(n, 10);
-        else { n.state = 'missed'; missNote(n); }
-      }
+    if (n.state !== 'falling') continue;
+    if (n.type === 'spam' && Math.abs(n.y - n.hitY) < 100) {
+      n.spamCount++;
+      spawnPopup(x, y, n.spamCount + '!', '#39ff14');
+      if (n.spamCount >= n.spamNeeded) hitNote(n, 10);
+      return;
     }
   }
 }
-function onRelease() {
-  for (const n of notes) {
-    if (n.state === 'falling' && n.active) {
-      n.active = false;
-      n.swipeStart = null;
-      if (n.type === 'hold' && n.holdProgress < n.holdNeeded) {
-        n.state = 'missed'; missNote(n);
-      }
-    }
-  }
-}
+function onRelease() {}
 
 function hitNote(n, dy) {
   n.state = 'hit';
@@ -385,6 +362,7 @@ function triggerGlitch() {
 
 // ===== RENDER CHARACTER =====
 function drawCharacter(c, t) {
+  if (!c) return;
   ctx.save();
   const baseX = CX, baseY = H * 0.55;
   const chaosScale = 1 + chaos / 200;
@@ -406,6 +384,7 @@ function drawCharacter(c, t) {
 }
 
 function drawBody(c, t, trailOffset) {
+  if (!c) return;
   const chaosScale = 1 + chaos / 150;
   // Invert filter
   if (c.invertColor) ctx.filter = 'invert(1) hue-rotate(180deg) saturate(2)';
@@ -752,9 +731,8 @@ function update(dt, t) {
       missNote(n);
     }
   }
-  notes = notes.filter(n => n.state !== 'missed' && n.state !== 'hit' || (n.y < H + 100));
-  // Cleanup
-  notes = notes.filter(n => n.state === 'falling' || n.y < H + 50);
+  // Cleanup: only keep falling notes
+  notes = notes.filter(n => n.state === 'falling');
 
   // Update character action timer
   character.actionT += dt;
