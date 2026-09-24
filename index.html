@@ -216,7 +216,9 @@ let scene, camera, renderer;
 let ctx2d=null; // 2D fallback context
 let webglOK=false;
 let charGroup, body, head, leftEye, rightEye, mouth, leftArm, rightArm, leftLeg, rightLeg, clothes;
+let leftBrow, rightBrow, leftPupil, rightPupil, tongue;
 let limbs=[], heads=[];
+let expression='neutral'; // neutral / happy / angry / shocked / dizzy / dead / heart / tongue / smirk / wail
 let abstractVal=0, meltdown=false;
 let dancePhase=0, currentMove='idle', moveT=0, moveDur=1;
 let charConfig={};
@@ -257,13 +259,15 @@ function setupThree(){
   }
 }
 
-// 2D fallback — draw a cartoon character dancing
+// 2D fallback — draw a cartoon character dancing with expressions
 function draw2DChar(t){
   if(!ctx2d) return;
   const W=canvas.width, H=canvas.height;
   ctx2d.fillStyle=meltdown?'#2a0040':'#1a0033';
   ctx2d.fillRect(0,0,W,H);
   const cx=W/2, cy=H*0.55;
+  const expr=MOVE_EXPR[currentMove]||'neutral';
+  const moveSpeed = (expr==='crazy'||expr==='angry')?16:(expr==='cool'||expr==='deadpan')?3:8;
   const bob=Math.abs(Math.sin(t*4.5))*20 + (shakeAmt*rand(-15,15));
   const scale=Math.min(W,H)/600;
   // shadow
@@ -278,20 +282,60 @@ function draw2DChar(t){
   const headY=bodyY-70*scale;
   ctx2d.fillStyle='#ffd8a8';
   ctx2d.beginPath(); ctx2d.arc(cx,headY,42*scale,0,TAU); ctx2d.fill(); ctx2d.stroke();
-  // eyes
+  // eyebrows
+  ctx2d.strokeStyle='#000'; ctx2d.lineWidth=3*scale; ctx2d.lineCap='round';
+  let blRot=0, brRot=0, byOff=0;
+  if(expr==='angry'){blRot=0.3;brRot=-0.3;}
+  else if(expr==='sad'){blRot=-0.2;brRot=0.2;}
+  else if(expr==='happy'){byOff=-3;}
+  else if(expr==='shocked'){byOff=5;}
+  else if(expr==='crazy'){blRot=rand(-0.4,0.4);brRot=rand(-0.4,0.4);}
+  ctx2d.save(); ctx2d.translate(cx-14*scale,headY-22*scale+byOff*scale); ctx2d.rotate(blRot);
+  ctx2d.beginPath(); ctx2d.moveTo(-10*scale,0); ctx2d.lineTo(10*scale,0); ctx2d.stroke(); ctx2d.restore();
+  ctx2d.save(); ctx2d.translate(cx+14*scale,headY-22*scale+byOff*scale); ctx2d.rotate(brRot);
+  ctx2d.beginPath(); ctx2d.moveTo(-10*scale,0); ctx2d.lineTo(10*scale,0); ctx2d.stroke(); ctx2d.restore();
+  // eyes — expression-driven
+  let eyeR=12*scale, pupilR=5*scale;
+  if(expr==='shocked'){eyeR=16*scale;pupilR=3*scale;}
+  else if(expr==='happy'){eyeR=6*scale;}
+  else if(expr==='angry'){eyeR=10*scale;}
+  else if(expr==='dizzy'){eyeR=13*scale;}
+  else if(expr==='crazy'){eyeR=14*scale;}
+  else if(expr==='cool'){eyeR=5*scale;}
+  else if(expr==='sad'){eyeR=9*scale;}
+  const px=(expr==='crazy'?rand(-3,3):Math.sin(t*3)*3)*scale;
+  const py=(expr==='shocked'?-3:expr==='sad'?2:0)*scale;
   ctx2d.fillStyle='#fff';
-  ctx2d.beginPath(); ctx2d.arc(cx-14*scale,headY-6*scale,12*scale,0,TAU); ctx2d.fill(); ctx2d.stroke();
-  ctx2d.beginPath(); ctx2d.arc(cx+14*scale,headY-6*scale,12*scale,0,TAU); ctx2d.fill(); ctx2d.stroke();
-  ctx2d.fillStyle='#000';
-  ctx2d.beginPath(); ctx2d.arc(cx-14*scale+Math.sin(t*3)*3*scale,headY-6*scale,5*scale,0,TAU); ctx2d.fill();
-  ctx2d.beginPath(); ctx2d.arc(cx+14*scale+Math.sin(t*3)*3*scale,headY-6*scale,5*scale,0,TAU); ctx2d.fill();
-  // mouth (sausage)
+  ctx2d.beginPath(); ctx2d.arc(cx-14*scale,headY-6*scale,eyeR,0,TAU); ctx2d.fill(); ctx2d.stroke();
+  ctx2d.beginPath(); ctx2d.arc(cx+14*scale,headY-6*scale,eyeR,0,TAU); ctx2d.fill(); ctx2d.stroke();
+  if(expr!=='happy'&&expr!=='cool'){
+    ctx2d.fillStyle='#000';
+    ctx2d.beginPath(); ctx2d.arc(cx-14*scale+px,headY-6*scale+py,pupilR,0,TAU); ctx2d.fill();
+    ctx2d.beginPath(); ctx2d.arc(cx+14*scale+px,headY-6*scale+py,pupilR,0,TAU); ctx2d.fill();
+  } else {
+    // closed eyes (curved lines)
+    ctx2d.strokeStyle='#000'; ctx2d.lineWidth=3*scale;
+    ctx2d.beginPath(); ctx2d.arc(cx-14*scale,headY-6*scale,8*scale,0.2,Math.PI-0.2); ctx2d.stroke();
+    ctx2d.beginPath(); ctx2d.arc(cx+14*scale,headY-6*scale,8*scale,0.2,Math.PI-0.2); ctx2d.stroke();
+  }
+  // mouth — expression-driven
   ctx2d.fillStyle='#882222';
-  const mw=(0.4+Math.sin(t*6)*0.1)*scale;
-  ctx2d.beginPath(); ctx2d.ellipse(cx,headY+16*scale,mw*30,8*scale,0,0,TAU); ctx2d.fill(); ctx2d.stroke();
-  // arms (rubber hose)
+  let mw=30*scale, mh=8*scale, mrot=0;
+  if(expr==='happy'){mw=36*scale;mh=10*scale;}
+  else if(expr==='angry'){mw=24*scale;mh=12*scale;}
+  else if(expr==='shocked'){mw=12*scale;mh=24*scale;}
+  else if(expr==='tongue'){mw=38*scale;mh=10*scale;}
+  else if(expr==='smirk'){mw=26*scale;mh=8*scale;mrot=0.2;}
+  else if(expr==='sad'){mrot=Math.PI;}
+  else if(expr==='crazy'){mw=20+rand(-10,10)*scale;mh=10+rand(-5,5)*scale;}
+  else {mw=(0.4+Math.sin(t*6)*0.1)*30*scale;mh=8*scale;}
+  ctx2d.save(); ctx2d.translate(cx,headY+16*scale); ctx2d.rotate(mrot);
+  ctx2d.beginPath(); ctx2d.ellipse(0,0,mw,mh,0,0,TAU); ctx2d.fill(); ctx2d.stroke();
+  if(expr==='tongue'){ctx2d.fillStyle='#ff4466';ctx2d.beginPath();ctx2d.ellipse(0,mh*0.6,mw*0.5,mh*0.6,0,0,TAU);ctx2d.fill();}
+  ctx2d.restore();
+  // arms (rubber hose) — move speed by expression
   ctx2d.strokeStyle='#ffd8a8'; ctx2d.lineWidth=10*scale; ctx2d.lineCap='round';
-  const armSwing=Math.sin(t*8)*40*scale;
+  const armSwing=Math.sin(t*moveSpeed)*40*scale*(expr==='crazy'?1.5:1);
   ctx2d.beginPath();
   ctx2d.moveTo(cx-40*scale,bodyY-20*scale);
   ctx2d.quadraticCurveTo(cx-70*scale,bodyY+armSwing,cx-55*scale,bodyY+40*scale+armSwing);
@@ -302,7 +346,7 @@ function draw2DChar(t){
   ctx2d.stroke();
   // legs
   ctx2d.strokeStyle='#222';
-  const legSwing=Math.sin(t*6)*20*scale;
+  const legSwing=Math.sin(t*moveSpeed*0.8)*20*scale;
   ctx2d.beginPath();
   ctx2d.moveTo(cx-18*scale,bodyY+50*scale);
   ctx2d.lineTo(cx-18*scale+legSwing,bodyY+95*scale);
@@ -413,16 +457,28 @@ function buildCharacter(cfg){
   leftEye=new THREE.Group(); leftEye.position.set(-cfg.eyeDist,cfg.headSize*0.1,cfg.headSize*0.5);
   rightEye=new THREE.Group(); rightEye.position.set(cfg.eyeDist,cfg.headSize*0.1,cfg.headSize*0.5);
   const eyeWhite=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize,8,8),new THREE.MeshStandardMaterial({color:0xffffff}));
-  const pupil=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.5,6,6),blackMat);
-  pupil.position.z=cfg.eyeSize*0.5;
-  leftEye.add(eyeWhite.clone(), pupil.clone());
-  rightEye.add(eyeWhite.clone(), pupil.clone());
+  leftPupil=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.5,6,6),blackMat);
+  leftPupil.position.z=cfg.eyeSize*0.5;
+  rightPupil=leftPupil.clone();
+  rightPupil.position.z=cfg.eyeSize*0.5;
+  leftEye.add(eyeWhite.clone(), leftPupil);
+  rightEye.add(eyeWhite.clone(), rightPupil);
   head.add(leftEye,rightEye);
 
-  // MOUTH — sausage
+  // EYEBROWS
+  leftBrow=new THREE.Mesh(new THREE.BoxGeometry(cfg.eyeSize*1.6,cfg.eyeSize*0.25,0.04),blackMat);
+  leftBrow.position.set(-cfg.eyeDist,cfg.headSize*0.32,cfg.headSize*0.5);
+  rightBrow=leftBrow.clone();
+  rightBrow.position.x=cfg.eyeDist;
+  head.add(leftBrow,rightBrow);
+
+  // MOUTH — sausage + tongue
   mouth=new THREE.Group(); mouth.position.set(0,-cfg.headSize*0.2,cfg.headSize*0.5);
   const mouthMesh=new THREE.Mesh(new THREE.CapsuleGeometry(0.05,cfg.mouthW,4,6),new THREE.MeshStandardMaterial({color:0x882222}));
   mouthMesh.rotation.z=Math.PI/2; mouth.add(mouthMesh);
+  tongue=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.6,8,8),new THREE.MeshStandardMaterial({color:0xff4466}));
+  tongue.position.set(0,-0.05,cfg.headSize*0.05); tongue.scale.y=0.5; tongue.visible=false;
+  mouth.add(tongue);
   head.add(mouth);
 
   // TV screen face
@@ -459,38 +515,159 @@ function buildCharacter(cfg){
 }
 
 // ============================================================
-//  DANCE MOVES — 22 moves
+//  DANCE MOVES — 60+ abstract meme moves
 // ============================================================
 const MOVES=['idle','electric_shake','society_shake','kemusan','flower_hands','headbang',
   'hip_shake','twitch','moonwalk','crab_step','robot','breakdance','train',
   'thomas','air_guitar','fish_flop','jump_dance','jump_rope','spiral','roll_ground',
-  'limb_knot','head_launch'];
+  'limb_knot','head_launch',
+  // meme / viral moves
+  'dab','floss','default_dance','take_the_l','hit_the_woah','shoot','hype',
+  'griddy','macarena','gangnam_style','chicken_dance','sprinkler','disco','vogue',
+  'whip','nae_nae','stanky_leg','dougie','tpose','shrug','facepalm','whip_nae',
+  'running_man','charleston','twist_dance','swim_dance','pony','hitchhike',
+  'orange_justice','rebel','lazer','glitch','zombie','robot_dance','shopping_cart',
+  'lawnmower','mashed_potato','backstroke','washing_machine','helicopter','pidgeon',
+  'silly_legs','jellyfish','sprinkler_arm','worm','helicopter_leg','cabbage_patch',
+  'rodeo','pump_it','shoulder_shimmy','chest_pop','wobble_wobble','bop_bop','shimmy',
+  'jitterbug','boogie','funk','disco_point','finger_wag','air_drum','air_piano',
+  'karate','sneeze','yawn','panic','happy_feet','penguin_walk','flap_arms','bobble',
+  'spaz_out','derp','cross_eyes','googly','tongue_wag','tongue_out','wink','smirk',
+  'crazy_eyes','deadpan','rage','sob','laugh','shock','dizzy_spin','crawl','march',
+  'swing_arms','pretzel','pretzel_arms','flap_wings','quack','hop','skip','gallop',
+  'moonwalk_back','slide_left','slide_right','spin_360','split','backflip','cartwheel',
+  'handstand','breakdance_windmill','breakdance_flare','breakdance_headspin','breakdance_backspin',
+  'popping','locking','waacking','tutting','king_tut','animating','robot_wave',
+  'milly_rock','hit_the_quan','juju_on_that_beat','mannequin_challenge','dab_savage',
+  'shoot_dance','bop_it','floss_dance','hit_it','woah','swing','groove','vibe',
+  'chill','zone_out','glitch_out','melt','explode','implode','vibrate','phase',
+  'flicker','strobe','hyper','frenzy','berserk','go_mode','insane','unhinged'
+];
 const MOVE_NAMES={
   electric_shake:'Electric Shake',society_shake:'Society Shake',kemusan:'Kemusan',flower_hands:'Flower Hands',
   headbang:'Headbang',hip_shake:'Hip Shake',twitch:'Twitch',moonwalk:'Moonwalk',crab_step:'Crab Step',
-  robot:'Robot',breakdance:'Breakdance',train:'Choo Choo Train',thomas:'Thomas Spin',air_guitar:'Air Guitar',
-  fish_flop:'Fish Flop',jump_dance:'Jump Dance',jump_rope:'Air Jump Rope',spiral:'Spiral Ascend',
-  roll_ground:'Ground Roll',limb_knot:'Limb Knot',head_launch:'Head Launch'
+  robot:'Robot',breakdance:'Breakdance',train:'Choo Choo',thomas:'Thomas Spin',air_guitar:'Air Guitar',
+  fish_flop:'Fish Flop',jump_dance:'Jump',jump_rope:'Jump Rope',spiral:'Spiral Up',
+  roll_ground:'Ground Roll',limb_knot:'Limb Knot',head_launch:'Head Launch',
+  dab:'DAB!',floss:'Floss',default_dance:'Default Dance',take_the_l:'Take the L',hit_the_woah:'Hit the Woah',
+  shoot:'Shoot',hype:'GET HYPE',griddy:'Griddy',macarena:'Macarena',gangnam_style:'Gangnam Style',
+  chicken_dance:'Chicken Dance',sprinkler:'Sprinkler',disco:'Disco',vogue:'Vogue',
+  whip:'Whip',nae_nae:'Nae Nae',stanky_leg:'Stanky Leg',dougie:'Dougie',tpose:'T-Pose',
+  shrug:'Shrug',facepalm:'Facepalm',whip_nae:'Whip & Nae',running_man:'Running Man',
+  charleston:'Charleston',twist_dance:'The Twist',swim_dance:'Swim',pony:'Pony',hitchhike:'Hitchhike',
+  orange_justice:'Orange Justice',rebel:'Rebel',lazer:'Lazer',glitch:'GLITCH',zombie:'Zombie',
+  robot_dance:'Robot Dance',shopping_cart:'Shopping Cart',lawnmower:'Lawnmower',
+  mashed_potato:'Mashed Potato',backstroke:'Backstroke',washing_machine:'Washing Machine',
+  helicopter:'Helicopter',pidgeon:'Pidgeon',silly_legs:'Silly Legs',jellyfish:'Jellyfish',
+  sprinkler_arm:'Sprinkler Arm',worm:'The Worm',helicopter_leg:'Heli Leg',cabbage_patch:'Cabbage Patch',
+  rodeo:'Rodeo',pump_it:'Pump It',shoulder_shimmy:'Shimmy',chest_pop:'Chest Pop',
+  wobble_wobble:'Wobble',bop_bop:'Bop Bop',shimmy:'Shake Shimmy',jitterbug:'Jitterbug',
+  boogie:'Boogie',funk:'Funk',disco_point:'Disco Point',finger_wag:'Finger Wag',
+  air_drum:'Air Drums',air_piano:'Air Piano',karate:'Karate Chop',sneeze:'Achoo!',
+  yawn:'Yawn',panic:'PANIC',happy_feet:'Happy Feet',penguin_walk:'Penguin',
+  flap_arms:'Flap Arms',bobble:'Bobble Head',spaz_out:'SPAZZ',derp:'DERP',
+  cross_eyes:'Cross Eyes',googly:'Googly Eyes',tongue_wag:'Tongue Wag',tongue_out:'Blehhh',
+  wink:'Wink',smirk:'Smirk',crazy_eyes:'Crazy Eyes',deadpan:'Deadpan',rage:'RAGE',
+  sob:'Sob',laugh:'LOL',shock:'SHOCK',dizzy_spin:'Dizzy',crawl:'Crawl',march:'March',
+  swing_arms:'Swing',pretzel:'Pretzel',pretzel_arms:'Pretzel Arms',flap_wings:'Flap Wings',
+  quack:'Quack',hop:'Hop',skip:'Skip',gallop:'Gallop',moonwalk_back:'Moonwalk Back',
+  slide_left:'Slide Left',slide_right:'Slide Right',spin_360:'360 Spin',split:'Split',
+  backflip:'Backflip',cartwheel:'Cartwheel',handstand:'Handstand',
+  breakdance_windmill:'Windmill',breakdance_flare:'Flare',breakdance_headspin:'Headspin',
+  breakdance_backspin:'Backspin',popping:'Popping',locking:'Locking',waacking:'Waacking',
+  tutting:'Tutting',king_tut:'King Tut',animating:'Animating',robot_wave:'Wave',
+  milly_rock:'Milly Rock',hit_the_quan:'Hit the Quan',juju_on_that_beat:'Juju',
+  mannequin_challenge:'Mannequin',dab_savage:'Savage Dab',shoot_dance:'Shoot Dance',
+  bop_it:'Bop It',floss_dance:'Floss Hard',hit_it:'Hit It',woah:'Woah!',swing:'Swing It',
+  groove:'Groove',vibe:'Vibe Check',chill:'Chill',zone_out:'Zoning Out',
+  glitch_out:'GLITCH OUT',melt:'Melt',explode:'EXPLODE',implode:'Implode',
+  vibrate:'VIBRATE',phase:'Phase Out',flicker:'Flicker',strobe:'STROBE',
+  hyper:'HYPER',frenzy:'FRENZY',berserk:'BERSERK',go_mode:'GO MODE',insane:'INSANE',
+  unhinged:'UNHINGED'
 };
 const MOVE_EMOJI={electric_shake:'⚡',society_shake:'💃',kemusan:'🕺',flower_hands:'🌸',
   headbang:'🤘',hip_shake:'🍑',twitch:'🌀',moonwalk:'🌙',crab_step:'🦀',robot:'🤖',
   breakdance:'🤸',train:'🚂',thomas:'🎠',air_guitar:'🎸',fish_flop:'🐟',jump_dance:'🎉',
-  jump_rope:'🪢',spiral:'🌀',roll_ground:'😵',limb_knot:'🔀',head_launch:'💥'};
+  jump_rope:'🪢',spiral:'🌀',roll_ground:'😵',limb_knot:'🔀',head_launch:'💥',
+  dab:'🤙',floss:'🦷',default_dance:'🕺',take_the_l:'👎',hit_the_woah:'💫',shoot:'🔫',
+  hype:'🔥',griddy:'⚡',macarena:'💃',gangnam_style:'🐴',chicken_dance:'🐔',sprinkler:'🚿',
+  disco:'🪩',vogue:'💅',whip:'🐎',nae_nae:'👋',stanky_leg:'🦵',dougie:'🤙',tpose:'🙅',
+  shrug:'🤷',facepalm:'🤦',whip_nae:'💃',running_man:'🏃',charleston:'👞',twist_dance:'🌀',
+  swim_dance:'🏊',pony:'🐴',hitchhike:'🚗',orange_justice:'🕺',rebel:'😎',lazer:'🔫',
+  glitch:'👾',zombie:'🧟',robot_dance:'🤖',shopping_cart:'🛒',lawnmower:'🌿',mashed_potato:'🥔',
+  backstroke:'🏊',washing_machine:'🧺',helicopter:'🚁',pidgeon:'🕊️',silly_legs:'🦵',jellyfish:'🪼',
+  sprinkler_arm:'🚿',worm:'🪱',helicopter_leg:'🚁',cabbage_patch:'🥬',rodeo:'🤠',pump_it:'💪',
+  shoulder_shimmy:'💃',chest_pop:'💥',wobble_wobble:'🫠',bop_bop:'🎵',shimmy:'✨',
+  jitterbug:'🪲',boogie:'🕺',funk:'🎷',disco_point:'👆',finger_wag:'👆',air_drum:'🥁',
+  air_piano:'🎹',karate:'🥋',sneeze:'🤧',yawn:'🥱',panic:'😱',happy_feet:'🐧',
+  penguin_walk:'🐧',flap_arms:'🦅',bobble:'🌀',spaz_out:'🤪',derp:'😵‍💫',cross_eyes:'😵',
+  googly:'👀',tongue_wag:'👅',tongue_out:'😋',wink:'😉',smirk:'😏',crazy_eyes:'🤪',
+  deadpan:'😐',rage:'😡',sob:'😭',laugh:'😂',shock:'😱',dizzy_spin:'😵‍💫',crawl:'🐛',
+  march:'🎖️',swing_arms:'🤾',pretzel:'🥨',pretzel_arms:'🥨',flap_wings:'🦆',quack:'🦆',
+  hop:'🐰',skip:'🦘',gallop:'🐎',moonwalk_back:'🌙',slide_left:'⬅️',slide_right:'➡️',
+  spin_360:'🔄',split:'🤸',backflip:'🤸',cartwheel:'🤸',handstand:'🤸',
+  breakdance_windmill:'🌬️',breakdance_flare:'🔥',breakdance_headspin:'💫',breakdance_backspin:'🔄',
+  popping:'✨',locking:'🔒',waacking:'💅',tutting:'👐',king_tut:'👑',animating:'🎞️',
+  robot_wave:'🌊',milly_rock:'🕺',hit_the_quan:'🎵',juju_on_that_beat:'🎶',mannequin_challenge:'🧍',
+  dab_savage:'🤙',shoot_dance:'🔫',bop_it:'🎵',floss_dance:'🦷',hit_it:'💥',woah:'💫',
+  swing:'🤾',groove:'🎶',vibe:'✨',chill:'😎',zone_out:'😵‍💫',glitch_out:'👾',melt:'🫠',
+  explode:'💥',implode:'🌀',vibrate:'📳',phase:'👻',flicker:'📺',strobe:'⚡',hyper:'⚡',
+  frenzy:'🤪',berserk:'😡',go_mode:'🚀',insane:'🤯',unhinged:'🤪'
+};
+
+// expression per move (drives eyes/mouth/brows)
+const MOVE_EXPR={
+  idle:'neutral',electric_shake:'happy',society_shake:'happy',kemusan:'smirk',flower_hands:'happy',
+  headbang:'angry',hip_shake:'smirk',twitch:'crazy',moonwalk:'cool',crab_step:'tongue',
+  robot:'deadpan',breakdance:'shocked',train:'happy',thomas:'dizzy',air_guitar:'happy',
+  fish_flop:'deadpan',jump_dance:'happy',jump_rope:'happy',spiral:'dizzy',roll_ground:'dizzy',
+  limb_knot:'shocked',head_launch:'shocked',
+  dab:'cool',floss:'happy',default_dance:'smirk',take_the_l:'sad',hit_the_woah:'cool',
+  shoot:'angry',hype:'crazy',griddy:'smirk',macarena:'happy',gangnam_style:'smirk',
+  chicken_dance:'tongue',sprinkler:'happy',disco:'happy',vogue:'cool',
+  whip:'smirk',nae_nae:'happy',stanky_leg:'smirk',dougie:'cool',tpose:'deadpan',
+  shrug:'neutral',facepalm:'sad',whip_nae:'happy',running_man:'happy',charleston:'happy',
+  twist_dance:'happy',swim_dance:'happy',pony:'tongue',hitchhike:'smirk',orange_justice:'crazy',
+  rebel:'angry',lazer:'angry',glitch:'crazy',zombie:'deadpan',robot_dance:'deadpan',
+  shopping_cart:'smirk',lawnmower:'happy',mashed_potato:'happy',backstroke:'happy',
+  washing_machine:'dizzy',helicopter:'dizzy',pidgeon:'tongue',silly_legs:'smirk',jellyfish:'dizzy',
+  sprinkler_arm:'happy',worm:'deadpan',helicopter_leg:'dizzy',cabbage_patch:'happy',
+  rodeo:'angry',pump_it:'angry',shoulder_shimmy:'smirk',chest_pop:'shocked',
+  wobble_wobble:'dizzy',bop_bop:'happy',shimmy:'smirk',jitterbug:'crazy',boogie:'happy',
+  funk:'cool',disco_point:'happy',finger_wag:'smirk',air_drum:'angry',air_piano:'happy',
+  karate:'angry',sneeze:'shocked',yawn:'deadpan',panic:'shocked',happy_feet:'happy',
+  penguin_walk:'happy',flap_arms:'tongue',bobble:'dizzy',spaz_out:'crazy',derp:'crazy',
+  cross_eyes:'crazy',googly:'shocked',tongue_wag:'tongue',tongue_out:'tongue',wink:'smirk',
+  smirk:'smirk',crazy_eyes:'crazy',deadpan:'deadpan',rage:'angry',sob:'sad',laugh:'happy',
+  shock:'shocked',dizzy_spin:'dizzy',crawl:'deadpan',march:'angry',swing_arms:'happy',
+  pretzel:'smirk',pretzel_arms:'smirk',flap_wings:'tongue',quack:'tongue',hop:'happy',
+  skip:'happy',gallop:'happy',moonwalk_back:'cool',slide_left:'smirk',slide_right:'smirk',
+  spin_360:'dizzy',split:'shocked',backflip:'shocked',cartwheel:'dizzy',handstand:'dizzy',
+  breakdance_windmill:'dizzy',breakdance_flare:'shocked',breakdance_headspin:'dizzy',
+  breakdance_backspin:'dizzy',popping:'cool',locking:'cool',waacking:'smirk',tutting:'deadpan',
+  king_tut:'smirk',animating:'crazy',robot_wave:'happy',milly_rock:'cool',hit_the_quan:'happy',
+  juju_on_that_beat:'happy',mannequin_challenge:'deadpan',dab_savage:'cool',shoot_dance:'angry',
+  bop_it:'happy',floss_dance:'crazy',hit_it:'angry',woah:'shocked',swing:'happy',
+  groove:'happy',vibe:'cool',chill:'deadpan',zone_out:'dizzy',glitch_out:'crazy',melt:'sad',
+  explode:'shocked',implode:'shocked',vibrate:'crazy',phase:'dizzy',flicker:'shocked',
+  strobe:'shocked',hyper:'crazy',frenzy:'crazy',berserk:'angry',go_mode:'shocked',
+  insane:'crazy',unhinged:'crazy'
+};
 
 function triggerMove(move){
-  currentMove=move; moveT=0; moveDur=move==='idle'?999:rand(1.2,2.5);
+  currentMove=move; moveT=0; moveDur=move==='idle'?999:rand(0.8,2.2);
   const name=MOVE_NAMES[move]||move;
   const emo=MOVE_EMOJI[move]||'💃';
   if(move!=='idle'){
-    popMeme(emo+' '+name, pick(['#39ff14','#ff2d95','#ffd93d','#a28bff']));
-    sfx(pick(['pop','spring','snap','twitch']));
+    popMeme(emo+' '+name, pick(['#39ff14','#ff2d95','#ffd93d','#a28bff','#00ffff','#ff66ff']));
+    sfx(pick(['pop','spring','snap','twitch','squeaky','bark','fart','whoosh']));
   }
   abstractVal=clamp(abstractVal+rand(3,8),0,100);
   if(abstractVal>=100) triggerMeltdown();
 }
 
 // ============================================================
-//  GESTURES
+//  GESTURES — anything goes, all moves fair game
 // ============================================================
 let touchStart=null, touchStartT=0, tapCount=0, tapTimer=null, lastShake=0;
 window.addEventListener('pointerdown',e=>{
@@ -499,18 +676,22 @@ window.addEventListener('pointerdown',e=>{
   tapCount++;
   clearTimeout(tapTimer);
   tapTimer=setTimeout(()=>{
-    if(tapCount>=5){triggerMove('twitch'); sfx('squeaky');} // multi-tap = frenzy
-    else if(tapCount>=2){triggerMove('headbang');} // double-tap
-    else triggerMove(pick(['electric_shake','flower_hands','hip_shake','twitch']));
+    if(tapCount>=5){triggerMove(pick(['spaz_out','frenzy','hyper','berserk','insane','unhinged','glitch_out'])); sfx('squeaky');}
+    else if(tapCount>=3){triggerMove(pick(['dab','hit_the_woah','shoot','griddy','woah']));}
+    else if(tapCount>=2){triggerMove(pick(['headbang','floss','whip_nae','milly_rock']));}
+    else triggerMove(pick(MOVES.slice(1)));
     tapCount=0;
   },200);
 });
 window.addEventListener('pointermove',e=>{
   if(state!=='PLAYING'||!touchStart) return;
   const dx=e.clientX-touchStart.x, dy=e.clientY-touchStart.y;
-  if(Math.abs(dx)>60||Math.abs(dy)>60){
-    if(Math.abs(dx)>Math.abs(dy)) triggerMove(dx>0?'crab_step':'moonwalk');
-    else triggerMove(dy>0?'headbang':'jump_dance');
+  if(Math.abs(dx)>50||Math.abs(dy)>50){
+    if(Math.abs(dx)>Math.abs(dy)){
+      triggerMove(dx>0?pick(['slide_right','crab_step','griddy','milly_rock']):pick(['slide_left','moonwalk','moonwalk_back']));
+    } else {
+      triggerMove(dy>0?pick(['dab','take_the_l','facepalm','shrug']):pick(['jump_dance','hop','skip','gallop','headbang']));
+    }
     sfx('whoosh');
     touchStart=null;
   }
@@ -518,14 +699,16 @@ window.addEventListener('pointermove',e=>{
 window.addEventListener('pointerup',e=>{
   if(!touchStart) return;
   const dt=performance.now()-touchStart.t;
-  if(dt>400){triggerMove(pick(['spiral','fish_flop','limb_knot'])); sfx('spring');} // long-press
+  if(dt>500){triggerMove(pick(['spiral','fish_flop','limb_knot','breakdance','backflip','cartwheel'])); sfx('spring');}
+  else if(dt<150){ /* handled by tap timer */ }
+  else triggerMove(pick(['air_guitar','air_drum','air_piano','karate','disco_point','finger_wag']));
   touchStart=null;
 });
 // two-finger
 let touches=0;
 window.addEventListener('touchstart',e=>{
   touches=e.touches.length;
-  if(touches>=2){triggerMove(pick(['head_launch','breakdance','thomas'])); sfx('pop');}
+  if(touches>=2){triggerMove(pick(['head_launch','breakdance','thomas','split','handstand','tpose','pretzel'])); sfx('pop');}
 },{passive:true});
 // shake
 window.addEventListener('devicemotion',e=>{
@@ -534,70 +717,268 @@ window.addEventListener('devicemotion',e=>{
   if(!a) return;
   const mag=Math.abs(a.x)+Math.abs(a.y)+Math.abs(a.z);
   const now=performance.now();
-  if(mag>30 && now-lastShake>300){
+  if(mag>25 && now-lastShake>300){
     lastShake=now;
     shakeAmt=1; triggerMeltdown(true);
     sfx('bass');
   }
 });
-// keyboard
+// keyboard — every key triggers a random wild move
 window.addEventListener('keydown',e=>{
   if(state!=='PLAYING') return;
   const map={'1':'electric_shake','2':'society_shake','3':'kemusan','4':'flower_hands',
     '5':'headbang','6':'hip_shake','7':'twitch','8':'moonwalk','9':'crab_step','0':'robot',
-    'q':'breakdance','w':'thomas','e':'air_guitar','r':'fish_flop','t':'spiral','y':'head_launch'};
+    'q':'dab','w':'floss','e':'hit_the_woah','r':'shoot','t':'hype','y':'griddy',
+    'a':'macarena','s':'gangnam_style','d':'chicken_dance','f':'sprinkler','g':'disco','h':'vogue',
+    'z':'breakdance','x':'spiral','c':'head_launch','v':'fish_flop','b':'jump_dance','n':'limb_knot'};
   if(map[e.key]) triggerMove(map[e.key]);
   else triggerMove(pick(MOVES.slice(1)));
 });
 
 // ============================================================
-//  ANIMATION
+//  ANIMATION — 150+ moves + facial expression system
 // ============================================================
+function applyExpression(t){
+  const expr=MOVE_EXPR[currentMove]||'neutral';
+  expression=expr;
+  // eyes scale (0 = closed, 1 = normal, >1 = wide)
+  let es=1, pupilX=0, pupilY=0;
+  if(expr==='happy'){es=0.3+Math.abs(Math.sin(t*8))*0.2;}
+  else if(expr==='angry'){es=0.8; pupilX=rand(-0.02,0.02);}
+  else if(expr==='shocked'){es=1.6+Math.sin(t*12)*0.2; pupilY=-0.03;}
+  else if(expr==='dizzy'){es=1.1; pupilX=Math.sin(t*10)*0.04; pupilY=Math.cos(t*10)*0.04;}
+  else if(expr==='dead'){es=0.1;}
+  else if(expr==='heart'){es=1.2;}
+  else if(expr==='tongue'){es=0.9; tongue.visible=true;}
+  else if(expr==='smirk'){es=0.7; pupilX=0.02;}
+  else if(expr==='wail'){es=0.5;}
+  else if(expr==='crazy'){es=1.3+rand(-0.1,0.1); pupilX=rand(-0.05,0.05); pupilY=rand(-0.05,0.05);}
+  else if(expr==='cool'){es=0.5;}
+  else if(expr==='sad'){es=0.6; pupilY=0.03;}
+  else {es=1;} // neutral
+  if(expr!=='tongue') tongue.visible=false;
+  const eyePop=meltdown?1.5+Math.sin(t*10)*0.3:1;
+  leftEye.scale.setScalar(es*eyePop); rightEye.scale.setScalar(es*eyePop);
+  if(leftPupil){leftPupil.position.x=pupilX; leftPupil.position.y=pupilY;}
+  if(rightPupil){rightPupil.position.x=pupilX; rightPupil.position.y=pupilY;}
+  // mouth shape
+  let msx=1, msy=1, mrot=0;
+  if(expr==='happy'){msx=1.2; msy=0.6;}
+  else if(expr==='angry'){msx=0.8; msy=1.2;}
+  else if(expr==='shocked'){msx=0.5; msy=1.8;}
+  else if(expr==='dizzy'){msx=1+Math.sin(t*10)*0.3; msy=1; mrot=Math.sin(t*8)*0.3;}
+  else if(expr==='tongue'){msx=1.3; msy=0.8;}
+  else if(expr==='smirk'){msx=0.9; msy=0.7; mrot=0.2;}
+  else if(expr==='wail'){msx=0.6; msy=1.5;}
+  else if(expr==='sad'){msx=1; msy=0.7; mrot=Math.PI;}
+  else if(expr==='deadpan'){msx=0.7; msy=0.5;}
+  else if(expr==='crazy'){msx=1+rand(-0.3,0.3); msy=1+rand(-0.2,0.2);}
+  else {msx=1+Math.sin(t*6)*0.3; msy=1;}
+  mouth.scale.set(msx,msy,1);
+  mouth.rotation.z=mrot;
+  // eyebrows
+  if(leftBrow){
+    let bl=0, br=0, by=0;
+    if(expr==='angry'){bl=0.3; br=-0.3;}
+    else if(expr==='shocked'){by=0.05;}
+    else if(expr==='sad'){bl=-0.2; br=0.2;}
+    else if(expr==='happy'){by=-0.02;}
+    else if(expr==='dizzy'){bl=Math.sin(t*8)*0.3; br=-Math.sin(t*8)*0.3;}
+    else if(expr==='crazy'){bl=rand(-0.5,0.5); br=rand(-0.5,0.5);}
+    leftBrow.rotation.z=bl; rightBrow.rotation.z=br;
+    leftBrow.position.y=cfg0(by); rightBrow.position.y=cfg0(by);
+  }
+}
+function cfg0(v){ return (charConfig?charConfig.headSize*0.32:0.32)+v; }
+
 function animateChar(t, dt){
   moveT+=dt;
   if(moveT>moveDur && currentMove!=='idle'){currentMove='idle';moveT=0;}
-  const beat=Math.sin(t*4.5); // ~140bpm bob
-  let bob=Math.abs(beat)*0.15, bodyRot=0, headRot=0;
+  const beat=Math.sin(t*4.5);
+  let bob=Math.abs(beat)*0.15, bodyRot=0, headRot=0, headY=0;
   let armL=0,armR=0,legL=0,legR=0;
-  let scaleY=1, scaleX=1;
-
+  let scaleY=1, scaleX=1, bodyX=0;
   const m=currentMove;
-  if(m==='electric_shake'){armL=Math.sin(t*30)*0.8;armR=-armL;headRot=Math.sin(t*25)*0.2;}
-  else if(m==='society_shake'){bodyRot=Math.sin(t*6)*0.15;armL=Math.sin(t*6)*0.5;armR=armL;legL=Math.sin(t*6+1)*0.3;}
-  else if(m==='kemusan'){armL=Math.sin(t*8)*0.6+0.3;armR=-Math.sin(t*8)*0.6-0.3;legL=Math.sin(t*4)*0.4;}
-  else if(m==='flower_hands'){armL=Math.sin(t*10)*1.2;armR=Math.cos(t*10)*1.2;headRot=Math.sin(t*5)*0.1;}
+  const fast=Math.sin(t*20), med=Math.sin(t*8), slow=Math.sin(t*4);
+
+  // ---- classic / viral ----
+  if(m==='electric_shake'){armL=fast*0.8;armR=-fast*0.8;headRot=Math.sin(t*25)*0.2;}
+  else if(m==='society_shake'){bodyRot=slow*0.15;armL=slow*0.5;armR=slow*0.5;legL=Math.sin(t*6+1)*0.3;}
+  else if(m==='kemusan'){armL=med*0.6+0.3;armR=-med*0.6-0.3;legL=Math.sin(t*4)*0.4;}
+  else if(m==='flower_hands'){armL=Math.sin(t*10)*1.2;armR=Math.cos(t*10)*1.2;headRot=slow*0.1;}
   else if(m==='headbang'){headRot=Math.abs(Math.sin(t*12))*1.2-0.3;bob+=0.1;}
-  else if(m==='hip_shake'){bodyRot=Math.sin(t*8)*0.3;legL=Math.sin(t*8)*0.2;legR=-legL;}
+  else if(m==='hip_shake'){bodyRot=med*0.3;legL=med*0.2;legR=-legL;}
   else if(m==='twitch'){armL=rand(-1,1);armR=rand(-1,1);headRot=rand(-0.5,0.5);scaleY=1+rand(-0.1,0.1);}
-  else if(m==='moonwalk'){legL=Math.sin(t*6)*0.5;legR=-legL;bodyRot=-0.05;armL=-0.3;armR=-0.3;}
-  else if(m==='crab_step'){armL=Math.sin(t*5)*0.5;armR=-Math.sin(t*5)*0.5;bodyRot=Math.sin(t*5)*0.1;}
+  else if(m==='moonwalk'){legL=Math.sin(t*6)*0.5;legR=-legL;bodyRot=-0.05;armL=-0.3;armR=-0.3;bodyX=-0.02;}
+  else if(m==='moonwalk_back'){legL=-Math.sin(t*6)*0.5;legR=-legL;bodyRot=0.05;armL=0.3;armR=0.3;bodyX=0.02;}
+  else if(m==='crab_step'){armL=Math.sin(t*5)*0.5;armR=-Math.sin(t*5)*0.5;bodyRot=Math.sin(t*5)*0.1;bodyX=Math.sin(t*5)*0.1;}
   else if(m==='robot'){armL=Math.round(Math.sin(t*3)*0.8);armR=-armL;headRot=Math.round(Math.sin(t*3)*0.5);}
-  else if(m==='breakdance'){bodyRot=Math.sin(t*8)*0.8;armL=1;armR=-1;bob+=0.2;}
+  else if(m==='breakdance'){bodyRot=med*0.8;armL=1;armR=-1;bob+=0.2;}
   else if(m==='train'){armL=0.5;armR=-0.5;legL=Math.sin(t*10)*0.4;legR=-legL;}
   else if(m==='thomas'){bodyRot=t*4;armL=0.8;armR=-0.8;}
-  else if(m==='air_guitar'){armL=-0.5;armR=Math.sin(t*15)*0.6;headRot=Math.sin(t*8)*0.3;}
-  else if(m==='fish_flop'){bodyRot=Math.sin(t*10)*0.6;scaleY=0.7+Math.abs(Math.sin(t*10))*0.5;bob+=0.1;}
+  else if(m==='air_guitar'){armL=-0.5;armR=fast*0.6;headRot=med*0.3;}
+  else if(m==='fish_flop'){bodyRot=fast*0.6;scaleY=0.7+Math.abs(fast)*0.5;bob+=0.1;}
   else if(m==='jump_dance'){bob+=Math.abs(Math.sin(t*6))*0.4;armL=Math.sin(t*6)*0.5;armR=-armL;}
   else if(m==='jump_rope'){armL=Math.cos(t*12);armR=Math.cos(t*12+Math.PI);legL=Math.abs(Math.sin(t*12))*0.3;legR=legL;}
-  else if(m==='spiral'){bodyRot=t*3;headRot=t*5;armL=t%3;armR=t%3;bob+=0.2;}
+  else if(m==='spiral'){bodyRot=t*3;headRot=t*5;armL=(t%3)-1.5;armR=(t%3)-1.5;bob+=0.2;}
   else if(m==='roll_ground'){bodyRot=t*5;bob=-0.5;armL=0.5;armR=-0.5;}
   else if(m==='limb_knot'){armL=1.5;armR=-1.5;legL=0.8;legR=-0.8;bodyRot=0.2;}
-  else if(m==='head_launch'){headRot=Math.sin(t*20)*0.5;}
+  else if(m==='head_launch'){headRot=fast*0.5;headY=Math.abs(fast)*1.5;}
+  // meme / viral
+  else if(m==='dab'){armL=-1.2;armR=0.8;headRot=-0.3;bodyRot=-0.1;}
+  else if(m==='dab_savage'){armL=-1.3;armR=0.9;headRot=-0.4;bodyRot=-0.15;}
+  else if(m==='floss'){armL=Math.sin(t*10)*0.6;armR=-armL;legL=Math.sin(t*10)*0.4;legR=-legL;bodyX=Math.sin(t*10)*0.05;}
+  else if(m==='floss_dance'){armL=Math.sin(t*14)*0.8;armR=-armL;legL=Math.sin(t*14)*0.5;legR=-legL;bodyX=Math.sin(t*14)*0.08;}
+  else if(m==='default_dance'){armL=Math.sin(t*6)*0.5+0.2;armR=Math.cos(t*6)*0.5-0.2;legL=Math.sin(t*6)*0.3;legR=Math.cos(t*6)*0.3;}
+  else if(m==='take_the_l'){armL=-1;armR=0.2;headRot=0.2;bodyRot=0.1;}
+  else if(m==='hit_the_woah'){armL=0.3+Math.sin(t*8)*0.1;armR=-0.8;bodyRot=-0.1;headRot=0.1;}
+  else if(m==='woah'){armL=0.4+Math.sin(t*10)*0.15;armR=-0.9;bodyRot=-0.12;headRot=0.15;}
+  else if(m==='shoot'){armL=-0.2;armR=-1.2;headRot=0.1;}
+  else if(m==='hype'){armL=1+Math.sin(t*15)*0.3;armR=1+Math.cos(t*15)*0.3;bob+=Math.abs(Math.sin(t*15))*0.3;}
+  else if(m==='griddy'){armL=Math.sin(t*9)*0.7;armR=-Math.sin(t*9)*0.7;legL=Math.sin(t*9)*0.4;legR=-Math.sin(t*9+0.5)*0.4;}
+  else if(m==='macarena'){armL=Math.sin(t*5)*0.3;armR=Math.cos(t*5)*0.3;headRot=Math.sin(t*5)*0.1;}
+  else if(m==='gangnam_style'){armL=0.5;armR=-0.5;legL=Math.sin(t*6)*0.3;bodyRot=Math.sin(t*6)*0.1;}
+  else if(m==='chicken_dance'){armL=Math.sin(t*10)*0.4;armR=Math.sin(t*10)*0.4;headRot=Math.sin(t*10)*0.3;}
+  else if(m==='sprinkler'){armL=0;armR=Math.sin(t*6)*1.2;headRot=Math.sin(t*6)*0.1;}
+  else if(m==='sprinkler_arm'){armL=0;armR=Math.sin(t*8)*1.4;bodyRot=Math.sin(t*8)*0.1;}
+  else if(m==='disco'){armL=Math.sin(t*5)*1.2;armR=-Math.cos(t*5)*1.2;headRot=Math.sin(t*5)*0.1;}
+  else if(m==='disco_point'){armL=-0.3;armR=1.3;headRot=-0.1;}
+  else if(m==='vogue'){armL=Math.sin(t*4)*0.8;armR=Math.cos(t*4)*0.8;headRot=Math.sin(t*4)*0.15;}
+  else if(m==='whip'){armL=Math.sin(t*8)*1;armR=0;headRot=Math.sin(t*8)*0.2;}
+  else if(m==='nae_nae'){armL=Math.sin(t*7)*0.6;armR=Math.cos(t*7)*0.6;legL=Math.sin(t*7)*0.3;}
+  else if(m==='whip_nae'){armL=Math.sin(t*9)*1.1;armR=Math.cos(t*9)*0.8;legL=Math.sin(t*9)*0.4;}
+  else if(m==='stanky_leg'){legL=Math.sin(t*8)*0.8;legR=0;armL=0.5;armR=-0.5;bodyRot=Math.sin(t*8)*0.1;}
+  else if(m==='dougie'){armL=Math.sin(t*6)*0.6;armR=Math.cos(t*6)*0.4;headRot=Math.sin(t*6)*0.1;}
+  else if(m==='tpose'){armL=1.5;armR=1.5;bodyRot=0;}
+  else if(m==='shrug'){armL=0.4;armR=0.4;headRot=0.1;}
+  else if(m==='facepalm'){armL=1.3;armR=0;headRot=0.2;}
+  else if(m==='running_man'){legL=Math.sin(t*10)*0.6;legR=-legL;armL=Math.sin(t*10)*0.4;armR=-armL;bob+=Math.abs(Math.sin(t*10))*0.1;}
+  else if(m==='charleston'){legL=Math.sin(t*8)*0.5;legR=-Math.sin(t*8+0.5)*0.5;armL=Math.sin(t*8)*0.4;armR=-armL;}
+  else if(m==='twist_dance'){bodyRot=Math.sin(t*8)*0.3;legL=Math.sin(t*8)*0.3;legR=-legL;}
+  else if(m==='swim_dance'){armL=Math.sin(t*6)*0.8;armR=Math.cos(t*6)*0.8;bodyRot=Math.sin(t*6)*0.15;}
+  else if(m==='pony'){legL=Math.abs(Math.sin(t*10))*0.5;legR=Math.abs(Math.sin(t*10+0.5))*0.5;armL=Math.sin(t*10)*0.3;}
+  else if(m==='hitchhike'){armL=Math.sin(t*5)*0.3;armR=1;headRot=0.1;}
+  else if(m==='orange_justice'){armL=Math.sin(t*7)*0.7;armR=Math.cos(t*7)*0.7;legL=Math.sin(t*7)*0.4;bodyRot=Math.sin(t*7)*0.2;}
+  else if(m==='rebel'){armL=-1;armR=-1;headRot=0.2;bodyRot=0.1;}
+  else if(m==='lazer'){armL=-0.3;armR=-1.3;headRot=0.1;bodyX=Math.sin(t*10)*0.05;}
+  else if(m==='glitch'){armL=rand(-1.5,1.5);armR=rand(-1.5,1.5);headRot=rand(-1,1);scaleY=1+rand(-0.3,0.3);scaleX=1+rand(-0.2,0.2);}
+  else if(m==='zombie'){armL=0.8;armR=0.8;legL=Math.sin(t*2)*0.2;bodyRot=0.1;headRot=0.2;}
+  else if(m==='robot_dance'){armL=Math.round(Math.sin(t*3)*0.8);armR=Math.round(Math.cos(t*3)*0.8);headRot=Math.round(Math.sin(t*3)*0.4);}
+  else if(m==='shopping_cart'){armL=0.9;armR=0.9;legL=Math.sin(t*6)*0.4;legR=-legL;bodyRot=0.1;}
+  else if(m==='lawnmower'){armL=0.6;armR=0.6;legL=Math.sin(t*8)*0.3;bodyX=Math.sin(t*4)*0.05;}
+  else if(m==='mashed_potato'){legL=Math.sin(t*10)*0.4;legR=-Math.sin(t*10)*0.4;armL=Math.sin(t*10)*0.3;armR=-armL;}
+  else if(m==='backstroke'){armL=Math.sin(t*6)*1.2;armR=Math.cos(t*6)*1.2;bob+=0.05;}
+  else if(m==='washing_machine'){bodyRot=t*2;armL=0.8;armR=-0.8;legL=0.3;}
+  else if(m==='helicopter'){armL=t*6;armR=t*6;bodyRot=0;}
+  else if(m==='helicopter_leg'){legL=t*6;legR=t*6;armL=0.3;}
+  else if(m==='pidgeon'){headRot=Math.sin(t*8)*0.4;armL=Math.sin(t*8)*0.2;armR=Math.sin(t*8)*0.2;}
+  else if(m==='silly_legs'){legL=Math.sin(t*12)*0.7;legR=Math.cos(t*12)*0.7;armL=0.3;}
+  else if(m==='jellyfish'){armL=Math.sin(t*5)*0.6;armR=Math.cos(t*5)*0.6;scaleY=1+Math.sin(t*5)*0.2;headRot=Math.sin(t*5)*0.1;}
+  else if(m==='worm'){bodyRot=Math.sin(t*6)*0.4;bob=-0.3;armL=0;armR=0;scaleY=0.8;}
+  else if(m==='cabbage_patch'){armL=Math.sin(t*7)*0.7;armR=-Math.sin(t*7)*0.7;bodyRot=Math.sin(t*7)*0.15;}
+  else if(m==='rodeo'){armL=0.3;armR=0.8+Math.sin(t*6)*0.2;bodyRot=Math.sin(t*6)*0.15;bob+=Math.abs(Math.sin(t*6))*0.1;}
+  else if(m==='pump_it'){armL=Math.abs(Math.sin(t*10))*1.2;armR=Math.abs(Math.cos(t*10))*1.2;bob+=Math.abs(Math.sin(t*10))*0.1;}
+  else if(m==='shoulder_shimmy'){bodyRot=Math.sin(t*10)*0.1;armL=0.3;armR=-0.3;headRot=Math.sin(t*10)*0.05;}
+  else if(m==='chest_pop'){scaleY=1+Math.abs(Math.sin(t*10))*0.3;armL=-0.3;armR=-0.3;}
+  else if(m==='wobble_wobble'){bodyRot=Math.sin(t*6)*0.4;scaleX=1+Math.sin(t*6)*0.1;scaleY=1-Math.sin(t*6)*0.1;}
+  else if(m==='bop_bop'){bob=Math.abs(Math.sin(t*8))*0.3;armL=0.2;armR=-0.2;}
+  else if(m==='shimmy'){bodyRot=Math.sin(t*12)*0.2;armL=Math.sin(t*12)*0.3;armR=-armL;}
+  else if(m==='jitterbug'){armL=rand(-1,1);armR=rand(-1,1);legL=rand(-0.5,0.5);legR=rand(-0.5,0.5);bob+=rand(0,0.2);}
+  else if(m==='boogie'){armL=Math.sin(t*8)*0.8;armR=Math.cos(t*8)*0.8;legL=Math.sin(t*8)*0.3;bodyRot=Math.sin(t*8)*0.1;}
+  else if(m==='funk'){armL=Math.sin(t*6)*0.6;armR=-Math.sin(t*6)*0.6;headRot=Math.sin(t*6)*0.2;bodyRot=Math.sin(t*6)*0.15;}
+  else if(m==='finger_wag'){armL=-0.2;armR=0.8+Math.sin(t*10)*0.2;headRot=Math.sin(t*10)*0.1;}
+  else if(m==='air_drum'){armL=Math.abs(Math.sin(t*20))*0.8;armR=Math.abs(Math.cos(t*20))*0.8;headRot=fast*0.3;}
+  else if(m==='air_piano'){armL=Math.sin(t*15)*0.5;armR=Math.cos(t*15)*0.5;headRot=Math.sin(t*8)*0.1;}
+  else if(m==='karate'){armL=0.3;armR=-1.4;headRot=0.1;legL=0.3;}
+  else if(m==='sneeze'){headRot=Math.abs(fast)*0.8;scaleY=0.9+Math.abs(fast)*0.2;armL=0.5;armR=0.5;}
+  else if(m==='yawn'){scaleY=0.95;headRot=0.2;armL=0.6;armR=0.6;}
+  else if(m==='panic'){armL=rand(-1,1);armR=rand(-1,1);headRot=rand(-0.5,0.5);bob+=Math.abs(fast)*0.2;}
+  else if(m==='happy_feet'){legL=Math.abs(Math.sin(t*20))*0.5;legR=Math.abs(Math.cos(t*20))*0.5;armL=0.3;}
+  else if(m==='penguin_walk'){legL=Math.sin(t*5)*0.3;legR=-legL;armL=0.2;armR=-0.2;bodyRot=Math.sin(t*5)*0.1;}
+  else if(m==='flap_arms'){armL=Math.abs(Math.sin(t*10))*1.2;armR=Math.abs(Math.cos(t*10))*1.2;}
+  else if(m==='flap_wings'){armL=Math.abs(Math.sin(t*8))*1.3;armR=Math.abs(Math.cos(t*8))*1.3;headRot=Math.sin(t*8)*0.2;}
+  else if(m==='bobble'){headRot=Math.sin(t*6)*0.6;bob+=Math.abs(Math.sin(t*6))*0.1;}
+  else if(m==='spaz_out'){armL=rand(-1.5,1.5);armR=rand(-1.5,1.5);headRot=rand(-0.8,0.8);legL=rand(-0.8,0.8);legR=rand(-0.8,0.8);scaleY=1+rand(-0.2,0.2);}
+  else if(m==='derp'){headRot=rand(-0.5,0.5);armL=0.5+rand(-0.3,0.3);armR=-0.5+rand(-0.3,0.3);scaleY=1+rand(-0.1,0.1);}
+  else if(m==='cross_eyes'){headRot=Math.sin(t*3)*0.1;armL=0.3;armR=-0.3;}
+  else if(m==='googly'){headRot=rand(-0.3,0.3);armL=0.2;armR=-0.2;}
+  else if(m==='tongue_wag'){headRot=Math.sin(t*10)*0.3;armL=0.2;armR=-0.2;}
+  else if(m==='tongue_out'){headRot=0.1;armL=0.3;armR=-0.3;}
+  else if(m==='wink'){headRot=Math.sin(t*4)*0.1;armL=0.2;armR=-0.2;}
+  else if(m==='smirk'){headRot=0.15;armL=0.3;armR=-0.2;}
+  else if(m==='crazy_eyes'){headRot=rand(-0.4,0.4);armL=rand(-0.8,0.8);armR=rand(-0.8,0.8);}
+  else if(m==='deadpan'){armL=0;armR=0;headRot=0;}
+  else if(m==='rage'){armL=-1;armR=-1;headRot=0.3;bodyRot=0.1;scaleY=1.1;}
+  else if(m==='sob'){headRot=-0.2;armL=0.5;armR=0.5;scaleY=0.95;}
+  else if(m==='laugh'){headRot=Math.abs(fast)*0.5;scaleY=1+Math.abs(fast)*0.1;armL=0.4;armR=-0.4;}
+  else if(m==='shock'){headRot=0.1;armL=-0.2;armR=-0.2;scaleY=1.1;}
+  else if(m==='dizzy_spin'){bodyRot=t*4;headRot=t*6;armL=0.5;armR=-0.5;}
+  else if(m==='crawl'){bob=-0.4;armL=Math.sin(t*6)*0.6;armR=Math.cos(t*6)*0.6;legL=Math.sin(t*6)*0.4;}
+  else if(m==='march'){legL=Math.abs(Math.sin(t*6))*0.5;legR=Math.abs(Math.cos(t*6))*0.5;armL=0.5;armR=-0.5;bodyRot=0;}
+  else if(m==='swing_arms'){armL=Math.sin(t*8)*1;armR=-Math.sin(t*8)*1;}
+  else if(m==='swing'){armL=Math.sin(t*6)*0.9;armR=Math.cos(t*6)*0.9;legL=Math.sin(t*6)*0.3;}
+  else if(m==='pretzel'){armL=1.2;armR=-1.2;legL=0.6;legR=-0.6;bodyRot=0.1;}
+  else if(m==='pretzel_arms'){armL=1.4;armR=-1.4;bodyRot=0.05;}
+  else if(m==='quack'){headRot=Math.sin(t*10)*0.4;armL=0.2;armR=-0.2;bob+=Math.abs(Math.sin(t*10))*0.1;}
+  else if(m==='hop'){bob=Math.abs(Math.sin(t*10))*0.4;armL=0.3;armR=-0.3;}
+  else if(m==='skip'){bob=Math.abs(Math.sin(t*8))*0.35;legL=Math.sin(t*8)*0.4;armL=0.3;armR=-0.3;}
+  else if(m==='gallop'){bob=Math.abs(Math.sin(t*12))*0.4;legL=Math.abs(Math.sin(t*12))*0.5;armL=Math.sin(t*6)*0.4;}
+  else if(m==='slide_left'){armL=-0.5;armR=0.5;legL=0.3;legR=-0.3;bodyX=-0.05;}
+  else if(m==='slide_right'){armL=0.5;armR=-0.5;legL=-0.3;legR=0.3;bodyX=0.05;}
+  else if(m==='spin_360'){bodyRot=t*3;headRot=t*2;}
+  else if(m==='split'){legL=1.5;legR=-1.5;bob=-0.3;armL=0.5;armR=-0.5;}
+  else if(m==='backflip'){bodyRot=t*8;bob+=Math.abs(Math.sin(t*4))*0.5;}
+  else if(m==='cartwheel'){bodyRot=t*6;armL=1;armR=-1;}
+  else if(m==='handstand'){bodyRot=Math.PI;bob=-0.8;armL=0.5;armR=-0.5;}
+  else if(m==='breakdance_windmill'){bodyRot=t*10;armL=0.8;armR=-0.8;bob=-0.4;}
+  else if(m==='breakdance_flare'){bodyRot=t*5;armL=Math.sin(t*10)*1.2;armR=Math.cos(t*10)*1.2;bob=-0.3;}
+  else if(m==='breakdance_headspin'){headRot=t*15;bodyRot=0;bob=-0.6;armL=0.5;armR=-0.5;}
+  else if(m==='breakdance_backspin'){bodyRot=t*12;bob=-0.5;armL=0.6;armR=-0.6;}
+  else if(m==='popping'){scaleY=1+Math.abs(fast)*0.15;armL=Math.round(fast*0.6);armR=Math.round(Math.cos(t*20)*0.6);headRot=Math.round(fast*0.3);}
+  else if(m==='locking'){armL=Math.round(slow*0.8);armR=Math.round(Math.cos(t*4)*0.8);headRot=Math.round(slow*0.3);}
+  else if(m==='waacking'){armL=Math.sin(t*12)*1.4;armR=Math.cos(t*12)*1.4;headRot=Math.sin(t*6)*0.1;}
+  else if(m==='tutting'){armL=0.8;armR=0.8;headRot=0;}
+  else if(m==='king_tut'){armL=0.9;armR=-0.9;headRot=Math.sin(t*4)*0.1;}
+  else if(m==='animating'){armL=Math.round(slow*0.7);armR=Math.round(Math.cos(t*4)*0.7);headRot=Math.round(slow*0.4);scaleY=1+Math.round(slow)*0.1;}
+  else if(m==='robot_wave'){armL=Math.sin(t*5)*0.6;armR=-0.2;headRot=Math.sin(t*5)*0.1;}
+  else if(m==='milly_rock'){armL=Math.sin(t*7)*0.7;armR=Math.cos(t*7)*0.5;bodyRot=Math.sin(t*7)*0.1;}
+  else if(m==='hit_the_quan'){armL=Math.sin(t*8)*0.6;armR=Math.cos(t*8)*0.6;legL=Math.sin(t*8)*0.3;}
+  else if(m==='juju_on_that_beat'){armL=Math.sin(t*9)*0.8;armR=Math.cos(t*9)*0.8;bodyX=Math.sin(t*9)*0.05;}
+  else if(m==='mannequin_challenge'){armL=0.3;armR=-0.5;headRot=0.1;scaleY=1;}
+  else if(m==='shoot_dance'){armL=-0.3;armR=-1.1;legL=Math.sin(t*6)*0.3;}
+  else if(m==='bop_it'){armL=Math.abs(fast)*0.9;armR=Math.abs(Math.cos(t*20))*0.9;bob+=Math.abs(fast)*0.15;}
+  else if(m==='hit_it'){armL=rand(-1,1);armR=rand(-1,1);headRot=rand(-0.5,0.5);scaleY=1+rand(-0.15,0.15);}
+  else if(m==='groove'){armL=slow*0.6;armR=Math.cos(t*4)*0.6;bodyRot=slow*0.15;}
+  else if(m==='vibe'){armL=slow*0.4;armR=slow*0.4;headRot=slow*0.1;bodyRot=slow*0.1;}
+  else if(m==='chill'){armL=slow*0.2;armR=-slow*0.2;headRot=slow*0.05;}
+  else if(m==='zone_out'){headRot=Math.sin(t*2)*0.15;armL=0.1;armR=-0.1;}
+  else if(m==='glitch_out'){armL=rand(-2,2);armR=rand(-2,2);headRot=rand(-1,1);scaleY=1+rand(-0.4,0.4);scaleX=1+rand(-0.3,0.3);bodyRot=rand(-0.5,0.5);}
+  else if(m==='melt'){scaleY=1-moveT*0.3;armL=0.3;armR=-0.3;}
+  else if(m==='explode'){scaleX=1+moveT*0.5;scaleY=1-moveT*0.2;armL=1.5;armR=-1.5;}
+  else if(m==='implode'){scaleX=1-moveT*0.4;scaleY=1+moveT*0.3;armL=-0.5;armR=0.5;}
+  else if(m==='vibrate'){bodyX=rand(-0.1,0.1);armL=rand(-0.5,0.5);armR=rand(-0.5,0.5);headRot=rand(-0.2,0.2);}
+  else if(m==='phase'){scaleY=1-Math.abs(slow)*0.3;armL=slow*0.3;armR=-slow*0.3;}
+  else if(m==='flicker'){armL=rand(-1,1);armR=rand(-1,1);headRot=rand(-0.5,0.5);bodyRot=rand(-0.3,0.3);}
+  else if(m==='strobe'){scaleY=Math.sin(t*30)>0?1.2:0.8;armL=Math.sin(t*30)*0.8;armR=Math.cos(t*30)*0.8;}
+  else if(m==='hyper'){armL=fast*1.2;armR=-fast*1.2;legL=fast*0.6;legR=-fast*0.6;headRot=fast*0.4;bob+=Math.abs(fast)*0.2;}
+  else if(m==='frenzy'){armL=rand(-1.5,1.5);armR=rand(-1.5,1.5);legL=rand(-1,1);legR=rand(-1,1);headRot=rand(-0.8,0.8);bodyRot=rand(-0.3,0.3);}
+  else if(m==='berserk'){armL=-1.2;armR=-1.2;headRot=0.4+rand(-0.2,0.2);scaleY=1.15;bodyRot=rand(-0.2,0.2);}
+  else if(m==='go_mode'){armL=Math.sin(t*15)*1.2;armR=Math.cos(t*15)*1.2;legL=Math.sin(t*15)*0.6;legR=Math.cos(t*15)*0.6;headRot=Math.sin(t*15)*0.3;bob+=Math.abs(Math.sin(t*15))*0.2;}
+  else if(m==='insane'){armL=rand(-2,2);armR=rand(-2,2);legL=rand(-1.2,1.2);legR=rand(-1.2,1.2);headRot=rand(-1,1);bodyRot=rand(-0.5,0.5);scaleY=1+rand(-0.3,0.3);}
+  else if(m==='unhinged'){armL=rand(-2.5,2.5);armR=rand(-2.5,2.5);legL=rand(-1.5,1.5);legR=rand(-1.5,1.5);headRot=rand(-1.2,1.2);bodyRot=rand(-0.6,0.6);scaleY=1+rand(-0.4,0.4);scaleX=1+rand(-0.3,0.3);}
   else{ // idle
     armL=Math.sin(t*3)*0.2;armR=-armL;headRot=Math.sin(t*2)*0.08;
   }
 
-  // apply
+  // apply transforms
   charGroup.position.y=bob;
+  charGroup.position.x=bodyX;
   charGroup.rotation.z=bodyRot*0.3;
   body.scale.set(scaleX, scaleY, scaleX);
   head.rotation.z=headRot*0.5;
-  head.position.y=1.4*charConfig.bodyLen + (m==='head_launch'?Math.abs(Math.sin(t*20))*1.5:0);
-  // eyes bulge
-  const eyePop=meltdown?1.5+Math.sin(t*10)*0.3:1;
-  leftEye.scale.setScalar(eyePop); rightEye.scale.setScalar(eyePop);
-  // mouth
-  mouth.scale.x=1+Math.sin(t*6)*0.3;
+  head.position.y=(charConfig?1.4*charConfig.bodyLen:1.4)+headY;
+  applyExpression(t);
+
   // limbs (rubber hose wobble)
   limbs.forEach(l=>{
     const ud=l.userData;
@@ -605,7 +986,6 @@ function animateChar(t, dt){
     l.rotation.z=sw*0.8;
     ud.upper.rotation.x=Math.sin(t*5+ud.phase)*0.2;
     ud.lower.rotation.x=Math.sin(t*7+ud.phase)*0.3+sw*0.3;
-    // limb knot twist
     if(ud.knotT!==undefined && ud.knotT!==null){
       ud.knotT+=dt;
       l.rotation.z+=Math.sin(t*20)*1.5;
@@ -851,14 +1231,14 @@ function loop(t){
       shakeAmt*=0.9; fisheye*=0.95;
       moveT+=dt;
       if(moveT>moveDur && currentMove!=='idle'){currentMove='idle';moveT=0;}
-      if(currentMove==='idle' && Math.random()<dt*0.5){
-        currentMove=pick(MOVES.slice(1)); moveT=0; moveDur=rand(1.2,2.5);
+      if(currentMove==='idle' && Math.random()<dt*1.2){
+        currentMove=pick(MOVES.slice(1)); moveT=0; moveDur=rand(0.8,1.8);
       }
       if(!meltdown) abstractVal=clamp(abstractVal-dt*2,0,100);
       draw2DChar(t/1000);
     }
-    // auto dance (webgl path)
-    if(webglOK && currentMove==='idle' && Math.random()<dt*0.5){
+    // auto dance (webgl path) — frequent random chaos
+    if(webglOK && currentMove==='idle' && Math.random()<dt*1.2){
       triggerMove(pick(MOVES.slice(1)));
     }
     if(webglOK && !meltdown) abstractVal=clamp(abstractVal-dt*2,0,100);
