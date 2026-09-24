@@ -1,76 +1,850 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>ABSTRACT SHAKER — 3D Clay Dance</title>
-<link rel="stylesheet" href="style.css">
+<title>Toon Dance Meltdown — 欧美卡通发疯摇</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0a0014;font-family:'Comic Sans MS','Arial Black',sans-serif}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:1}
+  .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .hidden{display:none!important}
+  /* ===== START SCREEN ===== */
+  #start-screen{background:radial-gradient(circle at 50% 40%,#2a0040,#0a0014);text-align:center;padding:20px}
+  .banner{font-size:28px;margin-bottom:8px;letter-spacing:2px;animation:wiggle 2s infinite}
+  @keyframes wiggle{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+  .title{font-size:42px;font-weight:900;color:#fff;line-height:1;letter-spacing:1px;text-shadow:0 0 20px #ff2d95,4px 4px 0 #000}
+  .title span{color:#ffd93d;display:block;font-size:20px;margin-top:6px;letter-spacing:4px}
+  .slogan{color:#39ff14;font-size:13px;margin:14px 0;letter-spacing:1px;line-height:1.8}
+  .slogan b{color:#ff2d95}
+  .big-btn{background:linear-gradient(135deg,#ff2d95,#a28bff);color:#fff;border:none;padding:18px 50px;font-size:22px;font-weight:900;border-radius:50px;cursor:pointer;box-shadow:0 0 30px rgba(255,45,149,.6);letter-spacing:2px;font-family:inherit;animation:pulse 1.5s infinite;margin-top:10px}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .tip{color:#888;font-size:11px;margin-top:16px;letter-spacing:1px}
+  /* ===== GAME UI ===== */
+  #game-ui{position:fixed;inset:0;z-index:5;pointer-events:none}
+  .ui-btn{position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.3);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;box-shadow:0 0 10px rgba(0,0,0,.5);font-family:inherit}
+  .ui-btn:active{transform:scale(.9)}
+  #btn-record{top:14px;left:14px}
+  #btn-mute{top:14px;right:74px}
+  #btn-char{top:14px;right:14px}
+  #btn-share{bottom:20px;left:50%;transform:translateX(-50%);width:120px;height:44px;border-radius:22px;font-size:14px;letter-spacing:1px;background:linear-gradient(135deg,#39ff14,#00b347);border:none;color:#000;font-weight:900}
+  .abstract-bar{position:absolute;top:70px;left:50%;transform:translateX(-50%);width:60%;height:8px;border-radius:4px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);overflow:hidden}
+  .abstract-fill{height:100%;width:0%;background:linear-gradient(90deg,#39ff14,#ffd93d 50%,#ff2d95);box-shadow:0 0 8px #ff2d95;transition:width .2s}
+  .rec-dot{position:absolute;top:14px;left:68px;width:12px;height:12px;border-radius:50%;background:#ff0000;display:none;animation:blink 0.6s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .rec-dot.active{display:block}
+  /* danmaku */
+  #danmaku{position:fixed;inset:0;z-index:6;pointer-events:none;overflow:hidden}
+  .dm{position:absolute;white-space:nowrap;font-weight:900;text-shadow:2px 2px 0 #000;animation:dmfly 4s linear forwards}
+  @keyframes dmfly{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+  /* meme text popup */
+  .meme-pop{position:fixed;font-size:36px;font-weight:900;pointer-events:none;z-index:7;text-shadow:0 0 12px currentColor,3px 3px 0 #000;animation:mepop 1.1s ease-out forwards}
+  @keyframes mepop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(0)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.2) rotate(10deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(2) rotate(-15deg)}}
+  /* meme emoji rain */
+  .rain-emoji{position:fixed;font-size:40px;pointer-events:none;z-index:7;animation:rainfall 2.5s linear forwards}
+  @keyframes rainfall{from{transform:translateY(-60px) rotate(0)}to{transform:translateY(110vh) rotate(720deg)}}
+  /* ===== SHARE SCREEN ===== */
+  #share-screen{background:rgba(10,0,20,.95);text-align:center;padding:24px}
+  .share-card{background:#1a0033;border:2px solid #ff2d95;border-radius:16px;padding:24px;max-width:360px;width:90%;box-shadow:0 0 30px rgba(255,45,149,.4)}
+  .share-title{color:#ffd93d;font-size:20px;font-weight:900;letter-spacing:1px;margin-bottom:12px}
+  .challenge-code{font-family:monospace;font-size:28px;color:#39ff14;letter-spacing:4px;background:#000;padding:12px;border-radius:8px;margin:12px 0;box-shadow:inset 0 0 10px rgba(57,255,20,.3)}
+  .share-hint{color:#888;font-size:12px;margin-bottom:16px}
+  .platforms{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:16px}
+  .plat{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px 16px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit}
+  .plat:active{transform:scale(.95)}
+  .close-btn{background:#444;color:#fff;border:none;padding:10px 30px;border-radius:20px;cursor:pointer;font-family:inherit;font-weight:bold}
+  /* meltdown overlay */
+  #meltdown{position:fixed;inset:0;z-index:8;pointer-events:none;background:rgba(255,0,100,.0);transition:background .3s}
+  #meltdown.active{background:rgba(255,0,100,.15);animation:mdflash .2s infinite}
+  @keyframes mdflash{0%,100%{background:rgba(255,0,100,.1)}50%{background:rgba(255,255,0,.1)}}
+  /* toast */
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:20;animation:toastin .3s}
+  @keyframes toastin{from{opacity:0;transform:translate(-50%,10px)}}
+  /* VHS scanlines overlay */
+  #scanlines{position:fixed;inset:0;z-index:9;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.15) 0px,rgba(0,0,0,.15) 1px,transparent 1px,transparent 3px);
+    mix-blend-mode:multiply;opacity:.5}
+  #vhs-noise{position:fixed;inset:0;z-index:9;pointer-events:none;opacity:.08;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .glitch-text{animation:glitch 0.3s infinite}
+  @keyframes glitch{0%{text-shadow:2px 0 #ff0000,-2px 0 #00ffff}50%{text-shadow:-2px 0 #ff0000,2px 0 #00ffff}100%{text-shadow:2px 0 #ff0000,-2px 0 #00ffff}}
+</style>
 </head>
 <body>
-<div id="app">
-  <canvas id="game-canvas"></canvas>
+<canvas id="c"></canvas>
 
-  <!-- Start Screen -->
-  <div id="start-screen" class="screen">
-    <div class="banner-bar">🟡🍥🍩👁️🎪🌀✨💥🍌👽🤡🐙💀🌵🎭</div>
-    <h1 class="game-title">ABSTRACT<br><span class="title-accent">CLAY</span></h1>
-    <p class="tagline">3D Meme Dance Blob<br>No score. No fail. Just vibe & mutate.</p>
-
-    <!-- Character Customizer -->
-    <div class="char-customizer">
-      <div class="char-preview-wrap">
-        <canvas id="char-preview-canvas" width="260" height="300"></canvas>
-        <div class="char-name" id="char-name">ABSTRACT BLOB</div>
-      </div>
-      <div class="char-controls">
-        <div class="ctrl-row">
-          <button class="ctrl-btn" data-part="head">👁️ HEAD</button>
-          <button class="ctrl-btn" data-part="body">🌀 BODY</button>
-        </div>
-        <div class="ctrl-row">
-          <button class="ctrl-btn" data-part="limbs">🦾 LIMBS</button>
-          <button class="ctrl-btn" data-part="skin">🎨 SKIN</button>
-        </div>
-        <div class="ctrl-row">
-          <button class="ctrl-btn" data-part="face">😜 FACE</button>
-          <button class="ctrl-btn random-all" data-part="all">🎲 RANDOM ALL</button>
-        </div>
-      </div>
-      <div class="preset-row">
-        <div class="preset-label">QUICK PICKS</div>
-        <div class="preset-list" id="preset-list"></div>
-      </div>
-    </div>
-
-    <button id="start-btn" class="big-btn">LET'S MELT!</button>
-    <div class="tip">👆 Tap anywhere · ⌨️ any key · 🎵 Idle goes crazy on its own.</div>
+<!-- Start Screen -->
+<div id="start-screen" class="overlay">
+  <div class="banner">🤪🌀💥🎭👁️🎪🍌🐸</div>
+  <h1 class="title glitch-text">TOON DANCE<br><span>MELTDOWN</span></h1>
+  <div class="slogan">
+    <b>不评分，不通关，只发疯。</b><br>
+    我的四肢有自己的想法。<br>
+    今天你摇了吗？
   </div>
-
-  <!-- Game HUD (minimal — no score, no fail) -->
-  <div id="hud" class="hidden">
-    <button id="back-btn" class="back-btn" title="Back to character select">←</button>
-    <div class="vibe-bar" id="vibe-bar">
-      <div class="vibe-fill" id="vibe-fill"></div>
-      <div class="vibe-label" id="vibe-label">VIBE 0%</div>
-    </div>
-    <div class="blob-count" id="blob-count">1 BLOB</div>
-  </div>
-
-  <!-- Meme fly popups container -->
-  <div id="popups"></div>
-
-  <!-- Meme storm overlay (merge explosion) -->
-  <div id="meme-storm" class="hidden"></div>
+  <button class="big-btn" id="btn-start">START SHAKING</button>
+  <div class="tip">👆 点按 · 👋 滑动 · 👆长按 · 👯双指 · 📱摇手机<br>任意操作都算对，挂机也会自己发疯</div>
 </div>
 
-<!-- Three.js via importmap -->
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+<!-- Game UI -->
+<div id="game-ui" class="hidden">
+  <button class="ui-btn" id="btn-record" title="Record">⏺</button>
+  <div class="rec-dot" id="rec-dot"></div>
+  <button class="ui-btn" id="btn-mute" title="Mute">🔊</button>
+  <button class="ui-btn" id="btn-char" title="New Character">🎲</button>
+  <div class="abstract-bar"><div class="abstract-fill" id="abs-fill"></div></div>
+  <button class="ui-btn" id="btn-share" title="Share">📤 SHARE</button>
+</div>
+
+<div id="danmaku"></div>
+<div id="meltdown"></div>
+<div id="scanlines"></div>
+<div id="vhs-noise"></div>
+
+<!-- Share Screen -->
+<div id="share-screen" class="overlay hidden">
+  <div class="share-card">
+    <div class="share-title">🎬 SHARE THE MELTDOWN</div>
+    <div class="share-hint">15s ghost replay ready. Send the code — your friend dances the SAME moves, but gets a DIFFERENT character!</div>
+    <div class="challenge-code" id="challenge-code">ABCD1234</div>
+    <div class="platforms">
+      <div class="plat" data-p="tiktok">🎵 TikTok</div>
+      <div class="plat" data-p="bilibili">📺 Bilibili</div>
+      <div class="plat" data-p="weibo">🌐 Weibo</div>
+      <div class="plat" data-p="clipboard">📋 Copy</div>
+    </div>
+    <button class="close-btn" id="btn-close-share">BACK TO DANCE</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script>
+// ============================================================
+//  TOON DANCE MELTDOWN — 欧美卡通发疯摇
+//  不评分，不通关，只发疯。
+// ============================================================
+const rand=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+// ============================================================
+//  AUDIO — procedural: 土嗨电子 + 8-bit + 唢呐 + 弹簧 + 狗叫 + 放屁 + 尖叫鸡
+// ============================================================
+let actx=null, musicNode=null, musicGain=null, muted=false;
+function ensureAudio(){
+  if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+  if(actx.state==='suspended') actx.resume();
+}
+// BGM: 140 BPM 土嗨电子 loop
+function buildBGM(){
+  const bpm=140, beat=60/bpm, len=beat*16, sr=actx.sampleRate;
+  const buf=actx.createBuffer(2,sr*len,sr);
+  for(let ch=0;ch<2;ch++){
+    const d=buf.getChannelData(ch);
+    for(let i=0;i<d.length;i++){
+      const t=i/sr, b=Math.floor(t/beat)%16;
+      let v=0;
+      if(t%beat<0.07) v+=Math.sin((t%beat)*140)*0.55*Math.exp(-(t%beat)*35);
+      const bass=[55,55,73,65,49,49,82,65];
+      v+=Math.sin(2*Math.PI*bass[b%8]*t)*0.2;
+      // 唢呐-like lead (sawtooth with vibrato)
+      const lead=[440,554,659,784,659,554,440,330];
+      const lf=lead[b%8], lt=t%beat;
+      if(lt<0.18) v+=(Math.sin(2*Math.PI*lf*t)+Math.sin(2*Math.PI*lf*2*t)*0.5)*0.1*(1-lt/0.18);
+      if(b%2===1&&(t%beat)<0.04) v+=(Math.random()*2-1)*0.12;
+      d[i]=Math.max(-1,Math.min(1,v*0.85));
+    }
+  }
+  return buf;
+}
+function startBGM(){
+  ensureAudio();
+  if(musicNode){try{musicNode.stop();}catch(e){}}
+  const s=actx.createBufferSource(); s.buffer=buildBGM(); s.loop=true;
+  musicGain=actx.createGain(); musicGain.gain.value=muted?0:0.3;
+  s.connect(musicGain).connect(actx.destination); s.start(); musicNode=s;
+}
+function sfx(type){
+  if(muted) return;
+  ensureAudio(); const t=actx.currentTime;
+  const mk=(freq,type='sine',dur=0.15,vol=0.2,slideTo=null)=>{
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t+dur+0.02);
+  };
+  if(type==='pop') mk(600,'sine',0.1,0.25,1200);
+  else if(type==='twitch'){mk(200+Math.random()*400,'square',0.06,0.15);}
+  else if(type==='spring'){
+    for(let i=0;i<5;i++) setTimeout(()=>mk(300+i*80,'sine',0.05,0.12),i*30);
+  }
+  else if(type==='bark'){ // dog bark
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(80,t+0.12);
+    g.gain.setValueAtTime(0.25,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.14);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t+0.15);
+  }
+  else if(type==='fart'){
+    const buf=actx.createBuffer(1,actx.sampleRate*0.3,actx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length)*Math.sin(i*0.3);
+    const s=actx.createBufferSource(); s.buffer=buf;
+    const g=actx.createGain(); g.gain.value=0.3;
+    s.connect(g).connect(actx.destination); s.start(t);
+  }
+  else if(type==='squeaky'){ // 尖叫鸡
+    mk(1200,'sawtooth',0.1,0.18,400);
+    setTimeout(()=>mk(900,'sawtooth',0.08,0.15,300),60);
+  }
+  else if(type==='whoosh') mk(800,'sine',0.2,0.15,150);
+  else if(type==='bass'){mk(50,'sine',0.2,0.35,30);}
+  else if(type==='suona'){ // 唢呐-ish
+    mk(660,'sawtooth',0.2,0.2,880);
+    setTimeout(()=>mk(880,'sawtooth',0.15,0.15,660),120);
+  }
+  else if(type==='snap') mk(1000,'triangle',0.05,0.2,200);
+}
+
+// ============================================================
+//  THREE.JS SCENE (portrait)
+// ============================================================
+const canvas=document.getElementById('c');
+let scene, camera, renderer;
+let charGroup, body, head, leftEye, rightEye, mouth, leftArm, rightArm, leftLeg, rightLeg, clothes;
+let limbs=[], heads=[];
+let abstractVal=0, meltdown=false;
+let dancePhase=0, currentMove='idle', moveT=0, moveDur=1;
+let charConfig={};
+let clones=[]; // afterimage/clone blobs
+let shakeAmt=0, fisheye=0;
+
+function setupThree(){
+  try {
+    scene=new THREE.Scene();
+    scene.background=new THREE.Color(0x1a0033);
+    scene.fog=new THREE.FogExp2(0x1a0033,0.03);
+    camera=new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 100);
+    camera.position.set(0,0.5,7);
+    renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
+    renderer.setSize(window.innerWidth,window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    scene.add(new THREE.AmbientLight(0xffffff,0.5));
+    const key=new THREE.DirectionalLight(0xffffff,0.9); key.position.set(3,6,4); scene.add(key);
+    const rim=new THREE.PointLight(0xff2d95,2.5,15); rim.position.set(-3,1,3); scene.add(rim);
+    const fill=new THREE.PointLight(0x39ff14,2,15); fill.position.set(3,-1,3); scene.add(fill);
+    const floor=new THREE.Mesh(new THREE.CircleGeometry(8,32), new THREE.MeshStandardMaterial({color:0x2a0050}));
+    floor.rotation.x=-Math.PI/2; floor.position.y=-2.2; scene.add(floor);
+    window.addEventListener('resize',()=>{
+      camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth,window.innerHeight);
+    });
+  } catch(e){ console.warn('WebGL unavailable:', e.message); }
+}
+
+// cartoon outline via inverted hull
+function outlineMat(color=0x000000){
+  return new THREE.MeshBasicMaterial({color, side:THREE.BackSide});
+}
+function withOutline(mesh, offset=0.06){
+  const g=mesh.geometry.clone();
+  const m=new THREE.Mesh(g, outlineMat());
+  m.scale.setScalar(1+offset);
+  mesh.add(m);
+  return mesh;
+}
+
+// ============================================================
+//  CHARACTER — 90s Western cartoon (original, no copyright)
+// ============================================================
+const HEAD_TYPES=['sphere','box','tv','bread','toilet','triangle','egg'];
+const BODY_TYPES=['tall','round','square','pear'];
+const CLOTHES=['labcoat','uniform','underwear','suit','pajama','naked'];
+const SKIN_COLORS=[0xffd8a8,0xffcc88,0xf4c28a,0xffe0b3,0xd4a574,0xffb347,0x6b3fa0,0x8b5a2b];
+const CLOTH_COLORS={
+  labcoat:0xffffff, uniform:0x3366cc, underwear:0xff4488,
+  suit:0x222222, pajama:0xff6644, naked:0xffd8a8
+};
+const NAMES=['Wobble','Spaz','Goober','Dingus','Schmuck','Noodle','Bonk','Zippy','Flapjack','Muffin','Doodle','Boingo'];
+const CATCHPHRASES=['Golly gee!','Hot diggity!','Jeepers!','Aw shucks!','Holy moly!','Gadzooks!','Great Scott!','Heavens to Betsy!','Well I\'ll be!','Jumpin\' Jehoshaphat!'];
+
+function genChar(){
+  return {
+    headType: pick(HEAD_TYPES),
+    bodyType: pick(BODY_TYPES),
+    clothes: pick(CLOTHES),
+    skin: pick(SKIN_COLORS),
+    headSize: rand(0.9,1.3),
+    bodyLen: rand(0.7,1.3),
+    eyeSize: rand(0.12,0.2),
+    eyeDist: rand(0.15,0.32),
+    mouthW: rand(0.3,0.6),
+    limbLen: rand(0.8,1.4),
+    name: pick(NAMES),
+    phrase: pick(CATCHPHRASES),
+  };
+}
+
+function buildCharacter(cfg){
+  if(!scene) return;
+  if(charGroup) scene.remove(charGroup);
+  clones.forEach(cl=>scene.remove(cl.group)); clones=[]; heads=[];
+  charGroup=new THREE.Group();
+  const skin=new THREE.Color(cfg.skin);
+  const clothCol=new THREE.Color(CLOTH_COLORS[cfg.clothes]||0xffd8a8);
+  const skinMat=new THREE.MeshStandardMaterial({color:skin, roughness:0.6});
+  const clothMat=new THREE.MeshStandardMaterial({color:clothCol, roughness:0.7});
+  const blackMat=new THREE.MeshStandardMaterial({color:0x111111, roughness:0.5});
+
+  // BODY (low-poly for mobile)
+  let bodyGeo;
+  if(cfg.bodyType==='round') bodyGeo=new THREE.SphereGeometry(0.7*cfg.bodyLen,10,8);
+  else if(cfg.bodyType==='square') bodyGeo=new THREE.BoxGeometry(1.1*cfg.bodyLen,1.1*cfg.bodyLen,0.8*cfg.bodyLen);
+  else if(cfg.bodyType==='pear') bodyGeo=new THREE.SphereGeometry(0.7*cfg.bodyLen,10,8);
+  else bodyGeo=new THREE.CapsuleGeometry(0.5*cfg.bodyLen,0.6*cfg.bodyLen,4,8);
+  body=new THREE.Mesh(bodyGeo, cfg.clothes==='naked'?skinMat:clothMat);
+  body.position.y=0.3;
+  if(cfg.bodyType==='pear') body.scale.set(1.1,0.8,1.1);
+  withOutline(body); charGroup.add(body);
+
+  // CLOTHES detail (labcoat buttons, etc)
+  if(cfg.clothes==='labcoat'){
+    for(let i=0;i<3;i++){
+      const btn=new THREE.Mesh(new THREE.SphereGeometry(0.04,8,8),blackMat);
+      btn.position.set(0,0.6-i*0.18,0.42); charGroup.add(btn);
+    }
+  } else if(cfg.clothes==='underwear'){
+    const brief=new THREE.Mesh(new THREE.SphereGeometry(0.5,16,8,0,TAU,0,Math.PI/2), clothMat);
+    brief.position.y=0.05; brief.scale.set(1,0.6,1); charGroup.add(brief);
+  } else if(cfg.clothes==='suit'){
+    const tie=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.4,4),new THREE.MeshStandardMaterial({color:0xff2222}));
+    tie.position.set(0,0.6,0.45); charGroup.add(tie);
+  }
+
+  // HEAD
+  head=new THREE.Group(); head.position.y=1.4*cfg.bodyLen;
+  let headGeo, headMat=skinMat;
+  if(cfg.headType==='box') headGeo=new THREE.BoxGeometry(cfg.headSize,cfg.headSize,cfg.headSize);
+  else if(cfg.headType==='tv'){
+    headGeo=new THREE.BoxGeometry(cfg.headSize*1.1,cfg.headSize*0.9,cfg.headSize*0.8);
+    headMat=new THREE.MeshStandardMaterial({color:0x333333,roughness:0.4});
+  }
+  else if(cfg.headType==='bread') headGeo=new THREE.SphereGeometry(cfg.headSize*0.6,10,8);
+  else if(cfg.headType==='toilet') headGeo=new THREE.CylinderGeometry(cfg.headSize*0.5,cfg.headSize*0.6,cfg.headSize,10);
+  else if(cfg.headType==='triangle') headGeo=new THREE.ConeGeometry(cfg.headSize*0.7,cfg.headSize*1.3,4);
+  else if(cfg.headType==='egg') headGeo=new THREE.SphereGeometry(cfg.headSize*0.6,10,8);
+  else headGeo=new THREE.SphereGeometry(cfg.headSize*0.6,12,10);
+  const headMesh=new THREE.Mesh(headGeo,headMat);
+  withOutline(headMesh); head.add(headMesh);
+  heads.push(head); charGroup.add(head);
+
+  // EYES — floating independent
+  leftEye=new THREE.Group(); leftEye.position.set(-cfg.eyeDist,cfg.headSize*0.1,cfg.headSize*0.5);
+  rightEye=new THREE.Group(); rightEye.position.set(cfg.eyeDist,cfg.headSize*0.1,cfg.headSize*0.5);
+  const eyeWhite=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize,8,8),new THREE.MeshStandardMaterial({color:0xffffff}));
+  const pupil=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.5,6,6),blackMat);
+  pupil.position.z=cfg.eyeSize*0.5;
+  leftEye.add(eyeWhite.clone(), pupil.clone());
+  rightEye.add(eyeWhite.clone(), pupil.clone());
+  head.add(leftEye,rightEye);
+
+  // MOUTH — sausage
+  mouth=new THREE.Group(); mouth.position.set(0,-cfg.headSize*0.2,cfg.headSize*0.5);
+  const mouthMesh=new THREE.Mesh(new THREE.CapsuleGeometry(0.05,cfg.mouthW,4,6),new THREE.MeshStandardMaterial({color:0x882222}));
+  mouthMesh.rotation.z=Math.PI/2; mouth.add(mouthMesh);
+  head.add(mouth);
+
+  // TV screen face
+  if(cfg.headType==='tv'){
+    const screen=new THREE.Mesh(new THREE.PlaneGeometry(cfg.headSize*0.8,cfg.headSize*0.6),
+      new THREE.MeshBasicMaterial({color:0x00ff66}));
+    screen.position.z=cfg.headSize*0.41; head.add(screen);
+  }
+
+  // LIMBS — rubber hose (thin cylinders)
+  function makeLimb(side, isArm){
+    const g=new THREE.Group();
+    const len=cfg.limbLen*(isArm?1:1.1);
+    const upper=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,len*0.5,6),skinMat);
+    upper.position.y=-len*0.25;
+    const lower=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,len*0.5,6),skinMat);
+    lower.position.y=-len*0.75;
+    // hand/foot
+    const endMat=isArm?skinMat:new THREE.MeshStandardMaterial({color:0x222222});
+    const end=new THREE.Mesh(new THREE.SphereGeometry(isArm?0.1:0.12,6,6),endMat);
+    end.position.y=-len;
+    g.add(upper,lower,end);
+    g.userData={upper,lower,end,side,isArm,len,phase:Math.random()*TAU};
+    return g;
+  }
+  leftArm=makeLimb(-1,true); leftArm.position.set(-0.6*cfg.bodyLen,0.6,0);
+  rightArm=makeLimb(1,true); rightArm.position.set(0.6*cfg.bodyLen,0.6,0);
+  leftLeg=makeLimb(-1,false); leftLeg.position.set(-0.25*cfg.bodyLen,-0.5,0);
+  rightLeg=makeLimb(1,false); rightLeg.position.set(0.25*cfg.bodyLen,-0.5,0);
+  limbs=[leftArm,rightArm,leftLeg,rightLeg];
+  limbs.forEach(l=>{withOutline(l.userData.upper);withOutline(l.userData.lower);charGroup.add(l);});
+
+  scene.add(charGroup);
+}
+
+// ============================================================
+//  DANCE MOVES — 22 moves
+// ============================================================
+const MOVES=['idle','electric_shake','society_shake','科目三','flower_hands','headbang',
+  'hip_shake','twitch','moonwalk','crab_step','robot','breakdance','train',
+  'thomas','air_guitar','fish_flop','jump_dance','jump_rope','spiral','roll_ground',
+  'limb_knot','head_launch'];
+const MOVE_NAMES={
+  electric_shake:'电摇',society_shake:'社会摇',科目三:'科目三',flower_hands:'摇花手',
+  headbang:'甩头',hip_shake:'扭胯',twitch:'抽搐',moonwalk:'太空步',crab_step:'螃蟹步',
+  robot:'机器人',breakdance:'霹雳舞',train:'开火车',thomas:'托马斯',air_guitar:'空气吉他',
+  fish_flop:'鲤鱼打挺',jump_dance:'原地蹦迪',jump_rope:'无实物跳绳',spiral:'螺旋升天',
+  roll_ground:'跪地打滚',limb_knot:'四肢打结',head_launch:'头飞出去'
+};
+const MOVE_EMOJI={electric_shake:'⚡',society_shake:'💃',科目三:'🕺',flower_hands:'🌸',
+  headbang:'🤘',hip_shake:'🍑',twitch:'🌀',moonwalk:'🌙',crab_step:'🦀',robot:'🤖',
+  breakdance:'🤸',train:'🚂',thomas:'🎠',air_guitar:'🎸',fish_flop:'🐟',jump_dance:'🎉',
+  jump_rope:'🪢',spiral:'🌀',roll_ground:'😵',limb_knot:'🔀',head_launch:'💥'};
+
+function triggerMove(move){
+  currentMove=move; moveT=0; moveDur=move==='idle'?999:rand(1.2,2.5);
+  const name=MOVE_NAMES[move]||move;
+  const emo=MOVE_EMOJI[move]||'💃';
+  if(move!=='idle'){
+    popMeme(emo+' '+name, pick(['#39ff14','#ff2d95','#ffd93d','#a28bff']));
+    sfx(pick(['pop','spring','snap','twitch']));
+  }
+  abstractVal=clamp(abstractVal+rand(3,8),0,100);
+  if(abstractVal>=100) triggerMeltdown();
+}
+
+// ============================================================
+//  GESTURES
+// ============================================================
+let touchStart=null, touchStartT=0, tapCount=0, tapTimer=null, lastShake=0;
+window.addEventListener('pointerdown',e=>{
+  if(state!=='PLAYING') return;
+  touchStart={x:e.clientX,y:e.clientY,t:performance.now()};
+  tapCount++;
+  clearTimeout(tapTimer);
+  tapTimer=setTimeout(()=>{
+    if(tapCount>=5){triggerMove('twitch'); sfx('squeaky');} // 连点=鬼畜
+    else if(tapCount>=2){triggerMove('headbang');} // 双连点
+    else triggerMove(pick(['electric_shake','flower_hands','hip_shake','twitch']));
+    tapCount=0;
+  },200);
+});
+window.addEventListener('pointermove',e=>{
+  if(state!=='PLAYING'||!touchStart) return;
+  const dx=e.clientX-touchStart.x, dy=e.clientY-touchStart.y;
+  if(Math.abs(dx)>60||Math.abs(dy)>60){
+    if(Math.abs(dx)>Math.abs(dy)) triggerMove(dx>0?'crab_step':'moonwalk');
+    else triggerMove(dy>0?'headbang':'jump_dance');
+    sfx('whoosh');
+    touchStart=null;
+  }
+});
+window.addEventListener('pointerup',e=>{
+  if(!touchStart) return;
+  const dt=performance.now()-touchStart.t;
+  if(dt>400){triggerMove(pick(['spiral','fish_flop','limb_knot'])); sfx('spring');} // 长按
+  touchStart=null;
+});
+// two-finger
+let touches=0;
+window.addEventListener('touchstart',e=>{
+  touches=e.touches.length;
+  if(touches>=2){triggerMove(pick(['head_launch','breakdance','thomas'])); sfx('pop');}
+},{passive:true});
+// shake
+window.addEventListener('devicemotion',e=>{
+  if(state!=='PLAYING') return;
+  const a=e.accelerationIncludingGravity;
+  if(!a) return;
+  const mag=Math.abs(a.x)+Math.abs(a.y)+Math.abs(a.z);
+  const now=performance.now();
+  if(mag>30 && now-lastShake>300){
+    lastShake=now;
+    shakeAmt=1; triggerMeltdown(true);
+    sfx('bass');
+  }
+});
+// keyboard
+window.addEventListener('keydown',e=>{
+  if(state!=='PLAYING') return;
+  const map={'1':'electric_shake','2':'society_shake','3':'科目三','4':'flower_hands',
+    '5':'headbang','6':'hip_shake','7':'twitch','8':'moonwalk','9':'crab_step','0':'robot',
+    'q':'breakdance','w':'thomas','e':'air_guitar','r':'fish_flop','t':'spiral','y':'head_launch'};
+  if(map[e.key]) triggerMove(map[e.key]);
+  else triggerMove(pick(MOVES.slice(1)));
+});
+
+// ============================================================
+//  ANIMATION
+// ============================================================
+function animateChar(t, dt){
+  moveT+=dt;
+  if(moveT>moveDur && currentMove!=='idle'){currentMove='idle';moveT=0;}
+  const beat=Math.sin(t*4.5); // ~140bpm bob
+  let bob=Math.abs(beat)*0.15, bodyRot=0, headRot=0;
+  let armL=0,armR=0,legL=0,legR=0;
+  let scaleY=1, scaleX=1;
+
+  const m=currentMove;
+  if(m==='electric_shake'){armL=Math.sin(t*30)*0.8;armR=-armL;headRot=Math.sin(t*25)*0.2;}
+  else if(m==='society_shake'){bodyRot=Math.sin(t*6)*0.15;armL=Math.sin(t*6)*0.5;armR=armL;legL=Math.sin(t*6+1)*0.3;}
+  else if(m==='科目三'){armL=Math.sin(t*8)*0.6+0.3;armR=-Math.sin(t*8)*0.6-0.3;legL=Math.sin(t*4)*0.4;}
+  else if(m==='flower_hands'){armL=Math.sin(t*10)*1.2;armR=Math.cos(t*10)*1.2;headRot=Math.sin(t*5)*0.1;}
+  else if(m==='headbang'){headRot=Math.abs(Math.sin(t*12))*1.2-0.3;bob+=0.1;}
+  else if(m==='hip_shake'){bodyRot=Math.sin(t*8)*0.3;legL=Math.sin(t*8)*0.2;legR=-legL;}
+  else if(m==='twitch'){armL=rand(-1,1);armR=rand(-1,1);headRot=rand(-0.5,0.5);scaleY=1+rand(-0.1,0.1);}
+  else if(m==='moonwalk'){legL=Math.sin(t*6)*0.5;legR=-legL;bodyRot=-0.05;armL=-0.3;armR=-0.3;}
+  else if(m==='crab_step'){armL=Math.sin(t*5)*0.5;armR=-Math.sin(t*5)*0.5;bodyRot=Math.sin(t*5)*0.1;}
+  else if(m==='robot'){armL=Math.round(Math.sin(t*3)*0.8);armR=-armL;headRot=Math.round(Math.sin(t*3)*0.5);}
+  else if(m==='breakdance'){bodyRot=Math.sin(t*8)*0.8;armL=1;armR=-1;bob+=0.2;}
+  else if(m==='train'){armL=0.5;armR=-0.5;legL=Math.sin(t*10)*0.4;legR=-legL;}
+  else if(m==='thomas'){bodyRot=t*4;armL=0.8;armR=-0.8;}
+  else if(m==='air_guitar'){armL=-0.5;armR=Math.sin(t*15)*0.6;headRot=Math.sin(t*8)*0.3;}
+  else if(m==='fish_flop'){bodyRot=Math.sin(t*10)*0.6;scaleY=0.7+Math.abs(Math.sin(t*10))*0.5;bob+=0.1;}
+  else if(m==='jump_dance'){bob+=Math.abs(Math.sin(t*6))*0.4;armL=Math.sin(t*6)*0.5;armR=-armL;}
+  else if(m==='jump_rope'){armL=Math.cos(t*12);armR=Math.cos(t*12+Math.PI);legL=Math.abs(Math.sin(t*12))*0.3;legR=legL;}
+  else if(m==='spiral'){bodyRot=t*3;headRot=t*5;armL=t%3;armR=t%3;bob+=0.2;}
+  else if(m==='roll_ground'){bodyRot=t*5;bob=-0.5;armL=0.5;armR=-0.5;}
+  else if(m==='limb_knot'){armL=1.5;armR=-1.5;legL=0.8;legR=-0.8;bodyRot=0.2;}
+  else if(m==='head_launch'){headRot=Math.sin(t*20)*0.5;}
+  else{ // idle
+    armL=Math.sin(t*3)*0.2;armR=-armL;headRot=Math.sin(t*2)*0.08;
+  }
+
+  // apply
+  charGroup.position.y=bob;
+  charGroup.rotation.z=bodyRot*0.3;
+  body.scale.set(scaleX, scaleY, scaleX);
+  head.rotation.z=headRot*0.5;
+  head.position.y=1.4*charConfig.bodyLen + (m==='head_launch'?Math.abs(Math.sin(t*20))*1.5:0);
+  // eyes bulge
+  const eyePop=meltdown?1.5+Math.sin(t*10)*0.3:1;
+  leftEye.scale.setScalar(eyePop); rightEye.scale.setScalar(eyePop);
+  // mouth
+  mouth.scale.x=1+Math.sin(t*6)*0.3;
+  // limbs (rubber hose wobble)
+  limbs.forEach(l=>{
+    const ud=l.userData;
+    const sw=l===leftArm?armL:l===rightArm?armR:l===leftLeg?legL:legR;
+    l.rotation.z=sw*0.8;
+    ud.upper.rotation.x=Math.sin(t*5+ud.phase)*0.2;
+    ud.lower.rotation.x=Math.sin(t*7+ud.phase)*0.3+sw*0.3;
+    // limb knot twist
+    if(ud.knotT!==undefined && ud.knotT!==null){
+      ud.knotT+=dt;
+      l.rotation.z+=Math.sin(t*20)*1.5;
+      ud.upper.rotation.z=Math.sin(t*25)*2;
+      ud.lower.rotation.z=Math.cos(t*30)*2;
+    }
+  });
+}
+
+// ============================================================
+//  MUTATIONS
+// ============================================================
+let mutationTimer=5;
+const OBJECT_MUTATIONS=['banana','chair','phone','pizza','traffic_cone','toaster','fish','cactus'];
+function makeObject(type){
+  const g=new THREE.Group();
+  let mesh;
+  if(type==='banana'){
+    mesh=new THREE.Mesh(new THREE.CapsuleGeometry(0.15,0.5,4,6),new THREE.MeshStandardMaterial({color:0xffdd00}));
+    mesh.rotation.z=0.5;
+  } else if(type==='chair'){
+    const seat=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.1,0.6),new THREE.MeshStandardMaterial({color:0x8b4513}));
+    const back=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.7,0.1),new THREE.MeshStandardMaterial({color:0x8b4513}));
+    back.position.set(0,0.35,-0.25); g.add(seat,back); mesh=seat;
+  } else if(type==='phone'){
+    mesh=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.8,0.08),new THREE.MeshStandardMaterial({color:0x222222}));
+    const screen=new THREE.Mesh(new THREE.PlaneGeometry(0.32,0.6),new THREE.MeshBasicMaterial({color:0x39ff14}));
+    screen.position.z=0.05; g.add(screen);
+  } else if(type==='pizza'){
+    mesh=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.1,8),new THREE.MeshStandardMaterial({color:0xffaa00}));
+    for(let i=0;i<6;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(0.06,4,4),new THREE.MeshStandardMaterial({color:0xff3333}));
+      const a=i/6*TAU; p.position.set(Math.cos(a)*0.3,0.06,Math.sin(a)*0.3); g.add(p);}
+  } else if(type==='traffic_cone'){
+    mesh=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.8,6),new THREE.MeshStandardMaterial({color:0xff6600}));
+  } else if(type==='toaster'){
+    mesh=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.5,0.4),new THREE.MeshStandardMaterial({color:0xcccccc}));
+  } else if(type==='fish'){
+    mesh=new THREE.Mesh(new THREE.SphereGeometry(0.4,8,6),new THREE.MeshStandardMaterial({color:0x4488ff}));
+    mesh.scale.set(1.3,0.7,0.7);
+    const tail=new THREE.Mesh(new THREE.ConeGeometry(0.2,0.4,4),new THREE.MeshStandardMaterial({color:0x4488ff}));
+    tail.position.x=-0.5; tail.rotation.z=Math.PI/2; g.add(tail);
+  } else { // cactus
+    mesh=new THREE.Mesh(new THREE.CapsuleGeometry(0.15,0.6,4,6),new THREE.MeshStandardMaterial({color:0x22aa44}));
+  }
+  if(mesh) g.add(mesh);
+  g.traverse(o=>{if(o.material&&o.material.color)o.material.color.offsetHSL(rand(0,1),0,0);});
+  return g;
+}
+function maybeMutate(dt){
+  mutationTimer-=dt;
+  if(mutationTimer>0) return;
+  mutationTimer=rand(4,9);
+  const r=Math.random();
+  if(r<0.15 && heads.length<3){
+    const extra=head.clone();
+    extra.position.set(rand(-0.8,0.8),1.4*charConfig.bodyLen+rand(0,0.5),rand(-0.3,0.3));
+    extra.scale.setScalar(0.6);
+    charGroup.add(extra); heads.push(extra);
+    popMeme('多一个头!','#ff2d95'); sfx('pop');
+  } else if(r<0.3){
+    // eyes pop out
+    leftEye.position.z+=0.3; rightEye.position.z+=0.3;
+    setTimeout(()=>{leftEye.position.z-=0.3;rightEye.position.z-=0.3;},800);
+    popMeme('眼睛弹出!','#39ff14'); sfx('spring');
+  } else if(r<0.42){
+    // jaw drop
+    mouth.position.y-=0.3; mouth.scale.y=2;
+    setTimeout(()=>{mouth.position.y+=0.3;mouth.scale.y=1;},700);
+    popMeme('下巴掉地!','#ffd93d'); sfx('fart');
+  } else if(r<0.55){
+    // body stretch
+    body.scale.y=2.2;
+    setTimeout(()=>body.scale.y=1,1000);
+    popMeme('身体拉长!','#a28bff'); sfx('whoosh');
+  } else if(r<0.67){
+    // color invert
+    charGroup.children.forEach(ch=>{if(ch.material&&ch.material.color)ch.material.color.offsetHSL(0.5,0,0);});
+    setTimeout(()=>charGroup.children.forEach(ch=>{if(ch.material&&ch.material.color)ch.material.color.offsetHSL(-0.5,0,0);}),1200);
+    popMeme('颜色反相!','#ff66ff'); sfx('squeaky');
+  } else if(r<0.78){
+    // afterimage clone
+    spawnClone();
+    popMeme('残影分身!','#00ffff'); sfx('whoosh');
+  } else if(r<0.88){
+    // limb knot — twist all limbs
+    limbs.forEach(l=>{l.userData.knotT=0;});
+    popMeme('四肢打结!','#ff8800'); sfx('spring');
+    setTimeout(()=>limbs.forEach(l=>{l.userData.knotT=null;}),1500);
+  } else {
+    // turn into object — replace head with random object
+    const objType=pick(OBJECT_MUTATIONS);
+    const obj=makeObject(objType);
+    obj.position.copy(head.position);
+    head.visible=false;
+    charGroup.add(obj);
+    popMeme('变成'+objType+'!','#ffaa00'); sfx('bark');
+    setTimeout(()=>{charGroup.remove(obj);head.visible=true;},1500);
   }
 }
+
+function spawnClone(){
+  const cl=charGroup.clone();
+  cl.position.set(rand(-1.5,1.5),rand(-0.5,0.5),rand(-1,1));
+  cl.scale.setScalar(0.7+Math.random()*0.3);
+  cl.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=0.5;}});
+  scene.add(cl);
+  clones.push({group:cl, life:4});
+}
+
+// ============================================================
+//  VFX / MELTDOWN
+// ============================================================
+function triggerMeltdown(short=false){
+  if(meltdown) return;
+  meltdown=true;
+  document.getElementById('meltdown').classList.add('active');
+  fisheye=1; shakeAmt=1;
+  // spawn many clones
+  for(let i=0;i<5;i++) setTimeout(spawnClone,i*100);
+  // meme rain
+  for(let i=0;i<30;i++) setTimeout(spawnRainEmoji,i*50);
+  // danmaku
+  for(let i=0;i<8;i++) setTimeout(()=>spawnDanmaku(pick(['WTF','FIRE','SLAY','EPIC','GOATED','CRINGE','BASED','MELTDOWN'])),i*150);
+  popMeme('💥 CARTOON MELTDOWN 💥','#ff2d95');
+  sfx('bass');
+  const dur=short?1500:5000;
+  setTimeout(()=>{
+    meltdown=false;
+    document.getElementById('meltdown').classList.remove('active');
+    abstractVal=0;
+  },dur);
+}
+
+function popMeme(text,color){
+  const el=document.createElement('div');
+  el.className='meme-pop';
+  el.style.left=(rand(window.innerWidth*0.2,window.innerWidth*0.8))+'px';
+  el.style.top=(rand(window.innerHeight*0.2,window.innerHeight*0.6))+'px';
+  el.style.color=color; el.textContent=text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1100);
+}
+function spawnDanmaku(text){
+  const el=document.createElement('div');
+  el.className='dm';
+  el.style.top=rand(10,window.innerHeight-50)+'px';
+  el.style.color=pick(['#39ff14','#ff2d95','#ffd93d','#a28bff','#00ffff']);
+  el.style.fontSize=rand(16,28)+'px';
+  el.textContent=text;
+  document.getElementById('danmaku').appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+function spawnRainEmoji(){
+  const el=document.createElement('div');
+  el.className='rain-emoji';
+  el.style.left=rand(0,window.innerWidth)+'px';
+  el.style.top='-60px';
+  el.textContent=pick(['🤪','💥','🔥','✨','🌈','👁️','🌀','⚡','🎉','🤡','💀','👽']);
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2500);
+}
+
+// ============================================================
+//  REPLAY / SHARE — real recording via MediaRecorder
+// ============================================================
+let replayTimer=0, recording=false, mediaRecorder=null, recordedChunks=[];
+function genChallengeCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s=''; for(let i=0;i<8;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function startRecording(){
+  if(!renderer) return;
+  try{
+    const stream=renderer.domElement.captureStream(30);
+    recordedChunks=[];
+    let mime='video/webm;codecs=vp9';
+    if(!MediaRecorder.isTypeSupported(mime)) mime='video/webm';
+    mediaRecorder=new MediaRecorder(stream,{mimeType:mime});
+    mediaRecorder.ondataavailable=e=>{if(e.data.size>0)recordedChunks.push(e.data);};
+    mediaRecorder.start();
+    recording=true;
+    document.getElementById('rec-dot').classList.add('active');
+    showToast('⏺ RECORDING 15s...');
+    setTimeout(stopRecording,15000);
+  }catch(e){ console.warn('Recording failed',e); showToast('Recording not supported'); }
+}
+function stopRecording(){
+  if(mediaRecorder&&mediaRecorder.state!=='inactive'){
+    mediaRecorder.stop();
+  }
+  recording=false;
+  document.getElementById('rec-dot').classList.remove('active');
+}
+function showShare(){
+  state='SHARE';
+  const code=genChallengeCode();
+  document.getElementById('challenge-code').textContent=code;
+  document.getElementById('share-screen').classList.remove('hidden');
+  document.getElementById('game-ui').classList.add('hidden');
+  // create download link for recorded video
+  const dl=document.getElementById('download-link');
+  if(dl) dl.remove();
+  if(recordedChunks.length>0){
+    const blob=new Blob(recordedChunks,{type:'video/webm'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.id='download-link'; a.href=url; a.download='meltdown-'+code+'.webm';
+    a.textContent='⬇️ Download 15s Replay';
+    a.style.cssText='display:inline-block;margin:12px 0;padding:10px 18px;background:#ffd93d;color:#000;border-radius:10px;font-weight:bold;text-decoration:none;font-size:13px;';
+    document.querySelector('.share-card').insertBefore(a, document.querySelector('.platforms'));
+  }
+}
+
+// ============================================================
+//  MAIN
+// ============================================================
+let state='START';
+let lastT=0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,(t-lastT)/1000); lastT=t;
+  if(state==='PLAYING'){
+    dancePhase+=dt;
+    animateChar(t/1000, dt);
+    maybeMutate(dt);
+    // auto dance when idle
+    if(currentMove==='idle' && Math.random()<dt*0.5){
+      triggerMove(pick(MOVES.slice(1)));
+    }
+    // abstract value decay
+    if(!meltdown) abstractVal=clamp(abstractVal-dt*2,0,100);
+    document.getElementById('abs-fill').style.width=abstractVal+'%';
+    // clones update
+    clones=clones.filter(cl=>{
+      cl.life-=dt;
+      cl.group.rotation.y+=dt*2;
+      cl.group.position.y+=Math.sin(t*0.005+cl.life)*dt*0.3;
+      if(cl.life<=0){scene.remove(cl.group);return false;}
+      return true;
+    });
+    // camera shake + fisheye
+    shakeAmt*=0.9; fisheye*=0.95;
+    camera.position.x=Math.sin(t*0.001)*0.3+rand(-1,1)*shakeAmt*0.3;
+    camera.position.y=0.5+rand(-1,1)*shakeAmt*0.2;
+    camera.fov=55+fisheye*25; camera.updateProjectionMatrix();
+    // replay timer — auto record every 30s
+    replayTimer+=dt;
+    if(replayTimer>30){replayTimer=0; if(!recording) startRecording();}
+    if(renderer) renderer.render(scene,camera);
+  }
+}
+
+function startGame(){
+  ensureAudio(); startBGM();
+  state='PLAYING';
+  charConfig=genChar();
+  buildCharacter(charConfig);
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('game-ui').classList.remove('hidden');
+  popMeme(charConfig.name+'! '+charConfig.phrase,'#ffd93d');
+  sfx('suona');
+}
+
+// ===== UI wiring =====
+document.getElementById('btn-start').addEventListener('click',startGame);
+document.getElementById('btn-char').addEventListener('click',()=>{
+  charConfig=genChar(); buildCharacter(charConfig);
+  popMeme('NEW: '+charConfig.name,'#39ff14'); sfx('pop');
+});
+document.getElementById('btn-mute').addEventListener('click',e=>{
+  muted=!muted;
+  e.target.textContent=muted?'🔇':'🔊';
+  if(musicGain) musicGain.gain.value=muted?0:0.3;
+});
+document.getElementById('btn-record').addEventListener('click',e=>{
+  if(recording){stopRecording();showShare();}
+  else startRecording();
+});
+document.getElementById('btn-share').addEventListener('click',showShare);
+document.getElementById('btn-close-share').addEventListener('click',()=>{
+  document.getElementById('share-screen').classList.add('hidden');
+  document.getElementById('game-ui').classList.remove('hidden');
+  state='PLAYING';
+});
+document.querySelectorAll('.plat').forEach(p=>{
+  p.addEventListener('click',()=>{
+    const code=document.getElementById('challenge-code').textContent;
+    if(p.dataset.p==='clipboard'){
+      navigator.clipboard?.writeText(code);
+      showToast('📋 Challenge code copied!');
+    } else {
+      showToast('📤 Shared to '+p.textContent.trim()+'! (simulated)');
+    }
+  });
+});
+
+function showToast(msg){
+  const old=document.querySelector('.toast'); if(old) old.remove();
+  const el=document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2000);
+}
+
+// ===== INIT =====
+setupThree();
+requestAnimationFrame(loop);
 </script>
-<script type="module" src="game.js?v=9"></script>
 </body>
 </html>
