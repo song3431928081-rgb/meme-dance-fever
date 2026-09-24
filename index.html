@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Toon Dance Meltdown — 欧美卡通发疯摇</title>
+<title>Toon Dance Meltdown — Cartoon Chaos Shake</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
   html,body{width:100%;height:100%;overflow:hidden;background:#0a0014;font-family:'Comic Sans MS','Arial Black',sans-serif}
@@ -79,12 +79,12 @@
   <div class="banner">🤪🌀💥🎭👁️🎪🍌🐸</div>
   <h1 class="title glitch-text">TOON DANCE<br><span>MELTDOWN</span></h1>
   <div class="slogan">
-    <b>不评分，不通关，只发疯。</b><br>
-    我的四肢有自己的想法。<br>
-    今天你摇了吗？
+    <b>No scores, no levels, just chaos.</b><br>
+    My limbs have a mind of their own.<br>
+    Did you shake today?
   </div>
   <button class="big-btn" id="btn-start">START SHAKING</button>
-  <div class="tip">👆 点按 · 👋 滑动 · 👆长按 · 👯双指 · 📱摇手机<br>任意操作都算对，挂机也会自己发疯</div>
+  <div class="tip">👆 Tap · 👋 Swipe · 👆 Hold · 👯 Two-finger · 📱 Shake<br>Everything counts. Even AFK goes wild.</div>
 </div>
 
 <!-- Game UI -->
@@ -121,8 +121,8 @@
 <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 <script>
 // ============================================================
-//  TOON DANCE MELTDOWN — 欧美卡通发疯摇
-//  不评分，不通关，只发疯。
+//  TOON DANCE MELTDOWN — Cartoon Chaos Shake
+//  No scores, no levels, just chaos.
 // ============================================================
 const rand=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -130,16 +130,16 @@ const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ============================================================
-//  AUDIO — procedural: 土嗨电子 + 8-bit + 唢呐 + 弹簧 + 狗叫 + 放屁 + 尖叫鸡
+//  AUDIO — procedural: EDM + 8-bit + suona + spring + bark + fart + squeaky chicken
 // ============================================================
 let actx=null, musicNode=null, musicGain=null, muted=false;
 function ensureAudio(){
   if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
   if(actx.state==='suspended') actx.resume();
 }
-// BGM: 140 BPM 土嗨电子 loop
+// BGM: 140 BPM EDM loop
 function buildBGM(){
-  const bpm=140, beat=60/bpm, len=beat*16, sr=actx.sampleRate;
+  const bpm=140, beat=60/bpm, len=beat*8, sr=actx.sampleRate;
   const buf=actx.createBuffer(2,sr*len,sr);
   for(let ch=0;ch<2;ch++){
     const d=buf.getChannelData(ch);
@@ -149,7 +149,7 @@ function buildBGM(){
       if(t%beat<0.07) v+=Math.sin((t%beat)*140)*0.55*Math.exp(-(t%beat)*35);
       const bass=[55,55,73,65,49,49,82,65];
       v+=Math.sin(2*Math.PI*bass[b%8]*t)*0.2;
-      // 唢呐-like lead (sawtooth with vibrato)
+      // suona-like lead (sawtooth with vibrato)
       const lead=[440,554,659,784,659,554,440,330];
       const lf=lead[b%8], lt=t%beat;
       if(lt<0.18) v+=(Math.sin(2*Math.PI*lf*t)+Math.sin(2*Math.PI*lf*2*t)*0.5)*0.1*(1-lt/0.18);
@@ -195,13 +195,13 @@ function sfx(type){
     const g=actx.createGain(); g.gain.value=0.3;
     s.connect(g).connect(actx.destination); s.start(t);
   }
-  else if(type==='squeaky'){ // 尖叫鸡
+  else if(type==='squeaky'){ // squeaky chicken
     mk(1200,'sawtooth',0.1,0.18,400);
     setTimeout(()=>mk(900,'sawtooth',0.08,0.15,300),60);
   }
   else if(type==='whoosh') mk(800,'sine',0.2,0.15,150);
   else if(type==='bass'){mk(50,'sine',0.2,0.35,30);}
-  else if(type==='suona'){ // 唢呐-ish
+  else if(type==='suona'){ // suona-ish
     mk(660,'sawtooth',0.2,0.2,880);
     setTimeout(()=>mk(880,'sawtooth',0.15,0.15,660),120);
   }
@@ -213,6 +213,8 @@ function sfx(type){
 // ============================================================
 const canvas=document.getElementById('c');
 let scene, camera, renderer;
+let ctx2d=null; // 2D fallback context
+let webglOK=false;
 let charGroup, body, head, leftEye, rightEye, mouth, leftArm, rightArm, leftLeg, rightLeg, clothes;
 let limbs=[], heads=[];
 let abstractVal=0, meltdown=false;
@@ -237,11 +239,78 @@ function setupThree(){
     const fill=new THREE.PointLight(0x39ff14,2,15); fill.position.set(3,-1,3); scene.add(fill);
     const floor=new THREE.Mesh(new THREE.CircleGeometry(8,32), new THREE.MeshStandardMaterial({color:0x2a0050}));
     floor.rotation.x=-Math.PI/2; floor.position.y=-2.2; scene.add(floor);
+    webglOK=true;
     window.addEventListener('resize',()=>{
+      if(!webglOK) return;
       camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth,window.innerHeight);
     });
-  } catch(e){ console.warn('WebGL unavailable:', e.message); }
+  } catch(e){
+    console.warn('WebGL unavailable, using 2D fallback:', e.message);
+    webglOK=false;
+    // 2D fallback
+    canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+    ctx2d=canvas.getContext('2d');
+    window.addEventListener('resize',()=>{
+      canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+    });
+  }
+}
+
+// 2D fallback — draw a cartoon character dancing
+function draw2DChar(t){
+  if(!ctx2d) return;
+  const W=canvas.width, H=canvas.height;
+  ctx2d.fillStyle=meltdown?'#2a0040':'#1a0033';
+  ctx2d.fillRect(0,0,W,H);
+  const cx=W/2, cy=H*0.55;
+  const bob=Math.abs(Math.sin(t*4.5))*20 + (shakeAmt*rand(-15,15));
+  const scale=Math.min(W,H)/600;
+  // shadow
+  ctx2d.fillStyle='rgba(0,0,0,0.3)';
+  ctx2d.beginPath(); ctx2d.ellipse(cx,cy+80*scale,50*scale,12*scale,0,0,TAU); ctx2d.fill();
+  // body
+  const bodyY=cy+bob;
+  ctx2d.fillStyle='#ff2d95';
+  ctx2d.strokeStyle='#000'; ctx2d.lineWidth=3;
+  ctx2d.beginPath(); ctx2d.ellipse(cx,bodyY,45*scale,60*scale,0,0,TAU); ctx2d.fill(); ctx2d.stroke();
+  // head
+  const headY=bodyY-70*scale;
+  ctx2d.fillStyle='#ffd8a8';
+  ctx2d.beginPath(); ctx2d.arc(cx,headY,42*scale,0,TAU); ctx2d.fill(); ctx2d.stroke();
+  // eyes
+  ctx2d.fillStyle='#fff';
+  ctx2d.beginPath(); ctx2d.arc(cx-14*scale,headY-6*scale,12*scale,0,TAU); ctx2d.fill(); ctx2d.stroke();
+  ctx2d.beginPath(); ctx2d.arc(cx+14*scale,headY-6*scale,12*scale,0,TAU); ctx2d.fill(); ctx2d.stroke();
+  ctx2d.fillStyle='#000';
+  ctx2d.beginPath(); ctx2d.arc(cx-14*scale+Math.sin(t*3)*3*scale,headY-6*scale,5*scale,0,TAU); ctx2d.fill();
+  ctx2d.beginPath(); ctx2d.arc(cx+14*scale+Math.sin(t*3)*3*scale,headY-6*scale,5*scale,0,TAU); ctx2d.fill();
+  // mouth (sausage)
+  ctx2d.fillStyle='#882222';
+  const mw=(0.4+Math.sin(t*6)*0.1)*scale;
+  ctx2d.beginPath(); ctx2d.ellipse(cx,headY+16*scale,mw*30,8*scale,0,0,TAU); ctx2d.fill(); ctx2d.stroke();
+  // arms (rubber hose)
+  ctx2d.strokeStyle='#ffd8a8'; ctx2d.lineWidth=10*scale; ctx2d.lineCap='round';
+  const armSwing=Math.sin(t*8)*40*scale;
+  ctx2d.beginPath();
+  ctx2d.moveTo(cx-40*scale,bodyY-20*scale);
+  ctx2d.quadraticCurveTo(cx-70*scale,bodyY+armSwing,cx-55*scale,bodyY+40*scale+armSwing);
+  ctx2d.stroke();
+  ctx2d.beginPath();
+  ctx2d.moveTo(cx+40*scale,bodyY-20*scale);
+  ctx2d.quadraticCurveTo(cx+70*scale,bodyY-armSwing,cx+55*scale,bodyY+40*scale-armSwing);
+  ctx2d.stroke();
+  // legs
+  ctx2d.strokeStyle='#222';
+  const legSwing=Math.sin(t*6)*20*scale;
+  ctx2d.beginPath();
+  ctx2d.moveTo(cx-18*scale,bodyY+50*scale);
+  ctx2d.lineTo(cx-18*scale+legSwing,bodyY+95*scale);
+  ctx2d.stroke();
+  ctx2d.beginPath();
+  ctx2d.moveTo(cx+18*scale,bodyY+50*scale);
+  ctx2d.lineTo(cx+18*scale-legSwing,bodyY+95*scale);
+  ctx2d.stroke();
 }
 
 // cartoon outline via inverted hull
@@ -392,18 +461,18 @@ function buildCharacter(cfg){
 // ============================================================
 //  DANCE MOVES — 22 moves
 // ============================================================
-const MOVES=['idle','electric_shake','society_shake','科目三','flower_hands','headbang',
+const MOVES=['idle','electric_shake','society_shake','kemusan','flower_hands','headbang',
   'hip_shake','twitch','moonwalk','crab_step','robot','breakdance','train',
   'thomas','air_guitar','fish_flop','jump_dance','jump_rope','spiral','roll_ground',
   'limb_knot','head_launch'];
 const MOVE_NAMES={
-  electric_shake:'电摇',society_shake:'社会摇',科目三:'科目三',flower_hands:'摇花手',
-  headbang:'甩头',hip_shake:'扭胯',twitch:'抽搐',moonwalk:'太空步',crab_step:'螃蟹步',
-  robot:'机器人',breakdance:'霹雳舞',train:'开火车',thomas:'托马斯',air_guitar:'空气吉他',
-  fish_flop:'鲤鱼打挺',jump_dance:'原地蹦迪',jump_rope:'无实物跳绳',spiral:'螺旋升天',
-  roll_ground:'跪地打滚',limb_knot:'四肢打结',head_launch:'头飞出去'
+  electric_shake:'Electric Shake',society_shake:'Society Shake',kemusan:'Kemusan',flower_hands:'Flower Hands',
+  headbang:'Headbang',hip_shake:'Hip Shake',twitch:'Twitch',moonwalk:'Moonwalk',crab_step:'Crab Step',
+  robot:'Robot',breakdance:'Breakdance',train:'Choo Choo Train',thomas:'Thomas Spin',air_guitar:'Air Guitar',
+  fish_flop:'Fish Flop',jump_dance:'Jump Dance',jump_rope:'Air Jump Rope',spiral:'Spiral Ascend',
+  roll_ground:'Ground Roll',limb_knot:'Limb Knot',head_launch:'Head Launch'
 };
-const MOVE_EMOJI={electric_shake:'⚡',society_shake:'💃',科目三:'🕺',flower_hands:'🌸',
+const MOVE_EMOJI={electric_shake:'⚡',society_shake:'💃',kemusan:'🕺',flower_hands:'🌸',
   headbang:'🤘',hip_shake:'🍑',twitch:'🌀',moonwalk:'🌙',crab_step:'🦀',robot:'🤖',
   breakdance:'🤸',train:'🚂',thomas:'🎠',air_guitar:'🎸',fish_flop:'🐟',jump_dance:'🎉',
   jump_rope:'🪢',spiral:'🌀',roll_ground:'😵',limb_knot:'🔀',head_launch:'💥'};
@@ -430,8 +499,8 @@ window.addEventListener('pointerdown',e=>{
   tapCount++;
   clearTimeout(tapTimer);
   tapTimer=setTimeout(()=>{
-    if(tapCount>=5){triggerMove('twitch'); sfx('squeaky');} // 连点=鬼畜
-    else if(tapCount>=2){triggerMove('headbang');} // 双连点
+    if(tapCount>=5){triggerMove('twitch'); sfx('squeaky');} // multi-tap = frenzy
+    else if(tapCount>=2){triggerMove('headbang');} // double-tap
     else triggerMove(pick(['electric_shake','flower_hands','hip_shake','twitch']));
     tapCount=0;
   },200);
@@ -449,7 +518,7 @@ window.addEventListener('pointermove',e=>{
 window.addEventListener('pointerup',e=>{
   if(!touchStart) return;
   const dt=performance.now()-touchStart.t;
-  if(dt>400){triggerMove(pick(['spiral','fish_flop','limb_knot'])); sfx('spring');} // 长按
+  if(dt>400){triggerMove(pick(['spiral','fish_flop','limb_knot'])); sfx('spring');} // long-press
   touchStart=null;
 });
 // two-finger
@@ -474,7 +543,7 @@ window.addEventListener('devicemotion',e=>{
 // keyboard
 window.addEventListener('keydown',e=>{
   if(state!=='PLAYING') return;
-  const map={'1':'electric_shake','2':'society_shake','3':'科目三','4':'flower_hands',
+  const map={'1':'electric_shake','2':'society_shake','3':'kemusan','4':'flower_hands',
     '5':'headbang','6':'hip_shake','7':'twitch','8':'moonwalk','9':'crab_step','0':'robot',
     'q':'breakdance','w':'thomas','e':'air_guitar','r':'fish_flop','t':'spiral','y':'head_launch'};
   if(map[e.key]) triggerMove(map[e.key]);
@@ -495,7 +564,7 @@ function animateChar(t, dt){
   const m=currentMove;
   if(m==='electric_shake'){armL=Math.sin(t*30)*0.8;armR=-armL;headRot=Math.sin(t*25)*0.2;}
   else if(m==='society_shake'){bodyRot=Math.sin(t*6)*0.15;armL=Math.sin(t*6)*0.5;armR=armL;legL=Math.sin(t*6+1)*0.3;}
-  else if(m==='科目三'){armL=Math.sin(t*8)*0.6+0.3;armR=-Math.sin(t*8)*0.6-0.3;legL=Math.sin(t*4)*0.4;}
+  else if(m==='kemusan'){armL=Math.sin(t*8)*0.6+0.3;armR=-Math.sin(t*8)*0.6-0.3;legL=Math.sin(t*4)*0.4;}
   else if(m==='flower_hands'){armL=Math.sin(t*10)*1.2;armR=Math.cos(t*10)*1.2;headRot=Math.sin(t*5)*0.1;}
   else if(m==='headbang'){headRot=Math.abs(Math.sin(t*12))*1.2-0.3;bob+=0.1;}
   else if(m==='hip_shake'){bodyRot=Math.sin(t*8)*0.3;legL=Math.sin(t*8)*0.2;legR=-legL;}
@@ -595,35 +664,35 @@ function maybeMutate(dt){
     extra.position.set(rand(-0.8,0.8),1.4*charConfig.bodyLen+rand(0,0.5),rand(-0.3,0.3));
     extra.scale.setScalar(0.6);
     charGroup.add(extra); heads.push(extra);
-    popMeme('多一个头!','#ff2d95'); sfx('pop');
+    popMeme('Extra Head!','#ff2d95'); sfx('pop');
   } else if(r<0.3){
     // eyes pop out
     leftEye.position.z+=0.3; rightEye.position.z+=0.3;
     setTimeout(()=>{leftEye.position.z-=0.3;rightEye.position.z-=0.3;},800);
-    popMeme('眼睛弹出!','#39ff14'); sfx('spring');
+    popMeme('Eyes Pop!','#39ff14'); sfx('spring');
   } else if(r<0.42){
     // jaw drop
     mouth.position.y-=0.3; mouth.scale.y=2;
     setTimeout(()=>{mouth.position.y+=0.3;mouth.scale.y=1;},700);
-    popMeme('下巴掉地!','#ffd93d'); sfx('fart');
+    popMeme('Jaw Drop!','#ffd93d'); sfx('fart');
   } else if(r<0.55){
     // body stretch
     body.scale.y=2.2;
     setTimeout(()=>body.scale.y=1,1000);
-    popMeme('身体拉长!','#a28bff'); sfx('whoosh');
+    popMeme('Stretch!','#a28bff'); sfx('whoosh');
   } else if(r<0.67){
     // color invert
     charGroup.children.forEach(ch=>{if(ch.material&&ch.material.color)ch.material.color.offsetHSL(0.5,0,0);});
     setTimeout(()=>charGroup.children.forEach(ch=>{if(ch.material&&ch.material.color)ch.material.color.offsetHSL(-0.5,0,0);}),1200);
-    popMeme('颜色反相!','#ff66ff'); sfx('squeaky');
+    popMeme('Invert!','#ff66ff'); sfx('squeaky');
   } else if(r<0.78){
     // afterimage clone
     spawnClone();
-    popMeme('残影分身!','#00ffff'); sfx('whoosh');
+    popMeme('Afterimage!','#00ffff'); sfx('whoosh');
   } else if(r<0.88){
     // limb knot — twist all limbs
     limbs.forEach(l=>{l.userData.knotT=0;});
-    popMeme('四肢打结!','#ff8800'); sfx('spring');
+    popMeme('Limb Knot!','#ff8800'); sfx('spring');
     setTimeout(()=>limbs.forEach(l=>{l.userData.knotT=null;}),1500);
   } else {
     // turn into object — replace head with random object
@@ -632,7 +701,7 @@ function maybeMutate(dt){
     obj.position.copy(head.position);
     head.visible=false;
     charGroup.add(obj);
-    popMeme('变成'+objType+'!','#ffaa00'); sfx('bark');
+    popMeme('Morph: '+objType+'!','#ffaa00'); sfx('bark');
     setTimeout(()=>{charGroup.remove(obj);head.visible=true;},1500);
   }
 }
@@ -709,7 +778,7 @@ function genChallengeCode(){
   return s;
 }
 function startRecording(){
-  if(!renderer) return;
+  if(!renderer){ showToast('Recording needs WebGL mode'); return; }
   try{
     const stream=renderer.domElement.captureStream(30);
     recordedChunks=[];
@@ -761,50 +830,69 @@ function loop(t){
   const dt=Math.min(0.05,(t-lastT)/1000); lastT=t;
   if(state==='PLAYING'){
     dancePhase+=dt;
-    animateChar(t/1000, dt);
-    maybeMutate(dt);
-    // auto dance when idle
-    if(currentMove==='idle' && Math.random()<dt*0.5){
+    if(webglOK && charGroup){
+      animateChar(t/1000, dt);
+      maybeMutate(dt);
+      // clones update
+      clones=clones.filter(cl=>{
+        cl.life-=dt;
+        cl.group.rotation.y+=dt*2;
+        cl.group.position.y+=Math.sin(t*0.005+cl.life)*dt*0.3;
+        if(cl.life<=0){scene.remove(cl.group);return false;}
+        return true;
+      });
+      // camera shake + fisheye
+      shakeAmt*=0.9; fisheye*=0.95;
+      camera.position.x=Math.sin(t*0.001)*0.3+rand(-1,1)*shakeAmt*0.3;
+      camera.position.y=0.5+rand(-1,1)*shakeAmt*0.2;
+      camera.fov=55+fisheye*25; camera.updateProjectionMatrix();
+    } else {
+      // 2D fallback animation
+      shakeAmt*=0.9; fisheye*=0.95;
+      moveT+=dt;
+      if(moveT>moveDur && currentMove!=='idle'){currentMove='idle';moveT=0;}
+      if(currentMove==='idle' && Math.random()<dt*0.5){
+        currentMove=pick(MOVES.slice(1)); moveT=0; moveDur=rand(1.2,2.5);
+      }
+      if(!meltdown) abstractVal=clamp(abstractVal-dt*2,0,100);
+      draw2DChar(t/1000);
+    }
+    // auto dance (webgl path)
+    if(webglOK && currentMove==='idle' && Math.random()<dt*0.5){
       triggerMove(pick(MOVES.slice(1)));
     }
-    // abstract value decay
-    if(!meltdown) abstractVal=clamp(abstractVal-dt*2,0,100);
+    if(webglOK && !meltdown) abstractVal=clamp(abstractVal-dt*2,0,100);
     document.getElementById('abs-fill').style.width=abstractVal+'%';
-    // clones update
-    clones=clones.filter(cl=>{
-      cl.life-=dt;
-      cl.group.rotation.y+=dt*2;
-      cl.group.position.y+=Math.sin(t*0.005+cl.life)*dt*0.3;
-      if(cl.life<=0){scene.remove(cl.group);return false;}
-      return true;
-    });
-    // camera shake + fisheye
-    shakeAmt*=0.9; fisheye*=0.95;
-    camera.position.x=Math.sin(t*0.001)*0.3+rand(-1,1)*shakeAmt*0.3;
-    camera.position.y=0.5+rand(-1,1)*shakeAmt*0.2;
-    camera.fov=55+fisheye*25; camera.updateProjectionMatrix();
     // replay timer — auto record every 30s
     replayTimer+=dt;
     if(replayTimer>30){replayTimer=0; if(!recording) startRecording();}
-    if(renderer) renderer.render(scene,camera);
+    if(webglOK && renderer) renderer.render(scene,camera);
   }
 }
 
 function startGame(){
-  ensureAudio(); startBGM();
-  state='PLAYING';
-  charConfig=genChar();
-  buildCharacter(charConfig);
-  document.getElementById('start-screen').classList.add('hidden');
-  document.getElementById('game-ui').classList.remove('hidden');
-  popMeme(charConfig.name+'! '+charConfig.phrase,'#ffd93d');
-  sfx('suona');
+  try {
+    ensureAudio();
+    // start BGM async so it doesn't block the UI
+    setTimeout(()=>{ try{ startBGM(); }catch(e){ console.warn('BGM error',e); } }, 50);
+    state='PLAYING';
+    charConfig=genChar();
+    if(webglOK) buildCharacter(charConfig);
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('game-ui').classList.remove('hidden');
+    popMeme(charConfig.name+'! '+charConfig.phrase,'#ffd93d');
+    setTimeout(()=>{ try{ sfx('suona'); }catch(e){} }, 100);
+  } catch(e){
+    console.error('startGame error:', e);
+    showToast('Something went wrong — try again!');
+  }
 }
 
 // ===== UI wiring =====
 document.getElementById('btn-start').addEventListener('click',startGame);
 document.getElementById('btn-char').addEventListener('click',()=>{
-  charConfig=genChar(); buildCharacter(charConfig);
+  charConfig=genChar();
+  if(webglOK) buildCharacter(charConfig);
   popMeme('NEW: '+charConfig.name,'#39ff14'); sfx('pop');
 });
 document.getElementById('btn-mute').addEventListener('click',e=>{
