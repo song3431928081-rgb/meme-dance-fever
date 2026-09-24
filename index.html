@@ -686,10 +686,10 @@ function buildCharacter(cfg){
     g.userData={upper,lower,end,side,isArm,len,phase:Math.random()*TAU};
     return g;
   }
-  leftArm=makeLimb(-1,true); leftArm.position.set(-0.6*cfg.bodyLen,0.6,0);
-  rightArm=makeLimb(1,true); rightArm.position.set(0.6*cfg.bodyLen,0.6,0);
-  leftLeg=makeLimb(-1,false); leftLeg.position.set(-0.25*cfg.bodyLen,-0.5,0);
-  rightLeg=makeLimb(1,false); rightLeg.position.set(0.25*cfg.bodyLen,-0.5,0);
+  leftArm=makeLimb(-1,true); leftArm.position.set(-0.6*cfg.bodyLen,0.6,0); leftArm.userData.baseX=leftArm.position.x; leftArm.userData.baseY=leftArm.position.y;
+  rightArm=makeLimb(1,true); rightArm.position.set(0.6*cfg.bodyLen,0.6,0); rightArm.userData.baseX=rightArm.position.x; rightArm.userData.baseY=rightArm.position.y;
+  leftLeg=makeLimb(-1,false); leftLeg.position.set(-0.25*cfg.bodyLen,-0.5,0); leftLeg.userData.baseX=leftLeg.position.x; leftLeg.userData.baseY=leftLeg.position.y;
+  rightLeg=makeLimb(1,false); rightLeg.position.set(0.25*cfg.bodyLen,-0.5,0); rightLeg.userData.baseX=rightLeg.position.x; rightLeg.userData.baseY=rightLeg.position.y;
   limbs=[leftArm,rightArm,leftLeg,rightLeg];
   limbs.forEach(l=>{withOutline(l.userData.upper);withOutline(l.userData.lower);charGroup.add(l);});
 
@@ -1391,7 +1391,8 @@ function animateChar(t, dt){
   applyExpression(t);
 
   // limbs (rubber hose wobble) — EXTREME amplitude
-  const EXTREME = (meltdown || expr==='crazy'||expr==='maniacal'||expr==='exploding'||m==='full_body_flail'||m==='limbs_fly') ? 1.0 : 0;
+  const curExpr=MOVE_EXPR[currentMove]||'neutral';
+  const EXTREME = (meltdown || curExpr==='crazy'||curExpr==='maniacal'||curExpr==='exploding'||m==='full_body_flail'||m==='limbs_fly'||m==='flail_like_crazy') ? 1.0 : 0;
   limbs.forEach(l=>{
     const ud=l.userData;
     const sw=l===leftArm?armL:l===rightArm?armR:l===leftLeg?legL:legR;
@@ -1405,11 +1406,9 @@ function animateChar(t, dt){
       ud.upper.rotation.z=Math.sin(t*25)*2.5;
       ud.lower.rotation.z=Math.cos(t*30)*2.5;
     }
-    // limbs fly off effect for extreme moves
-    if(EXTREME){
-      l.position.x += Math.sin(t*15+ud.phase)*0.03;
-      l.position.y += Math.cos(t*12+ud.phase)*0.02;
-    }
+    // reset to base position, then apply extreme "fly off" offset
+    l.position.x=ud.baseX+(EXTREME?Math.sin(t*15+ud.phase)*0.05:0);
+    l.position.y=ud.baseY+(EXTREME?Math.cos(t*12+ud.phase)*0.04:0);
   });
 }
 
