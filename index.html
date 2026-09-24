@@ -15,6 +15,33 @@
     <div class="banner-bar">🐸🍆📺🚽🟡💥🍍👻🤡🐙💀🌵🍌👽🍩🐱</div>
     <h1 class="game-title">ABSTRACT<br><span class="title-accent">SHAKER</span></h1>
     <p class="tagline">Meme Dance Fever<br>Hit the beat. Mutate. Share the chaos.</p>
+
+    <!-- Character Customizer -->
+    <div class="char-customizer">
+      <div class="char-preview-wrap">
+        <canvas id="char-preview-canvas" width="260" height="300"></canvas>
+        <div class="char-name" id="char-name">ABSTRACT DANCER</div>
+      </div>
+      <div class="char-controls">
+        <div class="ctrl-row">
+          <button class="ctrl-btn" data-part="head">🧠 HEAD</button>
+          <button class="ctrl-btn" data-part="body">🌀 BODY</button>
+        </div>
+        <div class="ctrl-row">
+          <button class="ctrl-btn" data-part="limbs">🦾 LIMBS</button>
+          <button class="ctrl-btn" data-part="skin">🎨 SKIN</button>
+        </div>
+        <div class="ctrl-row">
+          <button class="ctrl-btn" data-part="face">😜 FACE</button>
+          <button class="ctrl-btn random-all" data-part="all">🎲 RANDOM ALL</button>
+        </div>
+      </div>
+      <div class="preset-row">
+        <div class="preset-label">QUICK PICKS</div>
+        <div class="preset-list" id="preset-list"></div>
+      </div>
+    </div>
+
     <button id="start-btn" class="big-btn">LET'S SHAKE!</button>
     <div class="tip">👆 Tap / Swipe / Hold · ⌨️ WASD · 🎵 My limbs have their own ideas.</div>
   </div>
@@ -63,7 +90,11 @@
       <button id="replay-btn" class="mid-btn">🔁 REPLAY MOMENTS</button>
       <button id="share-btn" class="mid-btn share">📲 SHARE</button>
     </div>
-    <button id="restart-btn" class="big-btn">SHAKE AGAIN</button>
+    <div class="btn-row">
+      <button id="change-char-btn" class="mid-btn">🎭 CHANGE CHARACTER</button>
+      <button id="restart-btn" class="mid-btn">🔄 SAME CHARACTER</button>
+    </div>
+    <button id="restart-main-btn" class="big-btn">SHAKE AGAIN</button>
   </div>
 
   <!-- Replay overlay -->
@@ -89,6 +120,6 @@
     </div>
   </div>
 </div>
-<script src="game.js?v=4"></script>
+<script src="game.js?v=5"></script>
 </body>
 </html>

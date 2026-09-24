@@ -65,6 +65,54 @@ html, body {
 .big-btn:active { transform:translateY(3px) scale(.96); }
 .tip { margin-top:16px; font-size:12px; color:#666; letter-spacing:1px; }
 
+/* ===== Character Customizer ===== */
+.char-customizer {
+  margin:14px 0 6px; width:100%; max-width:360px;
+  display:flex; flex-direction:column; align-items:center;
+}
+.char-preview-wrap {
+  position:relative; margin-bottom:10px;
+}
+#char-preview-canvas {
+  width:200px; height:230px;
+  background:radial-gradient(circle at 50% 60%, rgba(57,255,20,.12), rgba(10,0,20,0.9));
+  border:2px solid #ff2d95; border-radius:16px;
+  box-shadow:0 0 25px rgba(255,45,149,.5), inset 0 0 30px rgba(0,0,0,.5);
+  display:block;
+}
+.char-name {
+  position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+  font-size:11px; letter-spacing:2px; color:#39ff14;
+  text-shadow:0 0 8px #39ff14; white-space:nowrap;
+  background:rgba(0,0,0,.6); padding:2px 10px; border-radius:10px;
+}
+.char-controls { display:flex; flex-direction:column; gap:6px; width:100%; }
+.ctrl-row { display:flex; gap:6px; }
+.ctrl-btn {
+  flex:1; padding:9px 6px; font-size:12px; font-family:inherit; font-weight:bold;
+  letter-spacing:1px; color:#fff; cursor:pointer;
+  background:rgba(255,255,255,.07); border:1.5px solid rgba(255,255,255,.18);
+  border-radius:10px; transition:all .1s;
+}
+.ctrl-btn:active { transform:scale(.93); }
+.ctrl-btn:hover { background:rgba(255,45,149,.18); border-color:#ff2d95; }
+.ctrl-btn.random-all {
+  background:linear-gradient(135deg, #ff2d95, #a28bff);
+  border:none; box-shadow:0 0 12px rgba(255,45,149,.4);
+}
+.preset-row { margin-top:10px; width:100%; }
+.preset-label { font-size:9px; letter-spacing:2px; color:#888; margin-bottom:5px; text-align:center; }
+.preset-list { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+.preset-card {
+  flex-shrink:0; width:64px; height:64px; border-radius:12px;
+  border:2px solid rgba(255,255,255,.15); cursor:pointer;
+  background:rgba(255,255,255,.04); overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; transition:all .1s;
+}
+.preset-card:active { transform:scale(.9); }
+.preset-card.active { border-color:#39ff14; box-shadow:0 0 10px #39ff14; }
+
 /* ===== HUD ===== */
 #hud {
   position:absolute; top:0; left:0; right:0; z-index:20;

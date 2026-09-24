@@ -2,7 +2,7 @@
 // Pure canvas rhythm + ragdoll dance game. Procedural everything.
 
 const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
+let ctx = canvas.getContext('2d');
 let W, H, CX, CY;
 function resize() {
   const dpr = Math.min(window.devicePixelRatio, 2);
@@ -240,6 +240,125 @@ function genCharacter() {
     action: 'idle',
     actionT: 0,
   };
+}
+
+// ===== CHARACTER SELECTION =====
+let previewChar = genCharacter();
+
+// Preset characters — fun themed combos
+const PRESETS = [
+  { emoji:'🐸', name:'Froggo',  head:'frog',      body:'jelly',   limbs:['spring','spring','slipper','slipper'], skin:SKINS[0], face:'happy' },
+  { emoji:'🍆', name:'Eggman',  head:'eggplant',  body:'noodle',  limbs:['noodle','noodle','noodle','noodle'], skin:SKINS[2], face:'smug' },
+  { emoji:'📺', name:'Static',  head:'tv',        body:'sausage', limbs:['cable','cable','cable','cable'], skin:SKINS[6], face:'dizzy' },
+  { emoji:'🚽', name:'Flushy',  head:'toilet',    body:'jelly',   limbs:['spring','spring','slipper','slipper'], skin:SKINS[3], face:'tongue' },
+  { emoji:'👻', name:'Spooky',  head:'ghost',     body:'cloud',   limbs:['tentacle','tentacle','tentacle','tentacle'], skin:SKINS[1], face:'maniac' },
+  { emoji:'🐙', name:'Kraken',  head:'octopus',   body:'cloud',   limbs:['tentacle','tentacle','tentacle','tentacle'], skin:SKINS[7], face:'angry' },
+  { emoji:'💀', name:'Bones',   head:'skull',     body:'diamond', limbs:['chain','chain','chain','chain'], skin:SKINS[4], face:'deadpan' },
+  { emoji:'🌵', name:'Spikey',  head:'cactus',    body:'hexagon', limbs:['cactus_arm','cactus_arm','cactus_arm','cactus_arm'], skin:SKINS[0], face:'grin' },
+  { emoji:'👽', name:'Xeno',    head:'alien',     body:'star',    limbs:['laser','laser','balloon','balloon'], skin:SKINS[0], face:'surprised' },
+  { emoji:'🤡', name:'Honko',   head:'clown',     body:'pretzel', limbs:['balloon','balloon','slipper','slipper'], skin:SKINS[9], face:'maniac' },
+  { emoji:'🐱', name:'Meow',    head:'cat',       body:'jelly',   limbs:['spring','spring','chicken','chicken'], skin:SKINS[5], face:'wink' },
+  { emoji:'🍌', name:'Peely',   head:'banana',    body:'noodle',  limbs:['rubber_duck','rubber_duck','slipper','slipper'], skin:SKINS[8], face:'happy' },
+];
+
+function charFromPreset(p) {
+  return {
+    head: p.head, body: p.body,
+    limbs: [...p.limbs], skin: p.skin, face: p.face,
+    headSize: rand(60, 80), bodyLen: rand(90, 130),
+    headPhase: Math.random()*Math.PI*2, bodyPhase: Math.random()*Math.PI*2,
+    eyePhase: [Math.random()*Math.PI*2, Math.random()*Math.PI*2],
+    limbPhase: [0, Math.PI, Math.PI/2, -Math.PI/2],
+    bigHead:false, longNeck:false, eyesOut:false, spiralLimb:false,
+    invertColor:false, ghostTrail:false, extraLimbs:false, floatingHead:false,
+    rainbowSkin:false, bigMouth:false, crossEyes:false, spinMode:false,
+    action:'idle', actionT:0,
+  };
+}
+
+// Generate a meme name from character parts
+const NAME_PREFIX = ['Disco','Cyber','Mega','Ultra','Wobble','Chaos','Meme','Cosmic','Retro','Funky','Glitch','Turbo'];
+const NAME_SUFFIX = ['Shaker','Bopper','Wiggler','Groover','Twister','Flipper','Jiggler','Buzzer','Dancer','Shuffler','Spaz','Freak'];
+function genCharName(c) {
+  return pick(NAME_PREFIX) + ' ' + pick(NAME_SUFFIX);
+}
+
+function rerollPart(part) {
+  if (part === 'head') previewChar.head = pick(HEADS);
+  else if (part === 'body') previewChar.body = pick(BODY_TYPES);
+  else if (part === 'limbs') previewChar.limbs = [pick(LIMB_TYPES), pick(LIMB_TYPES), pick(LIMB_TYPES), pick(LIMB_TYPES)];
+  else if (part === 'skin') previewChar.skin = pick(SKINS);
+  else if (part === 'face') previewChar.face = pick(FACES);
+  else if (part === 'all') previewChar = genCharacter();
+  updateCharName();
+}
+
+function applyPreset(idx) {
+  previewChar = charFromPreset(PRESETS[idx]);
+  updateCharName();
+  // Highlight active preset
+  document.querySelectorAll('.preset-card').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+
+function updateCharName() {
+  const el = document.getElementById('char-name');
+  if (el) el.textContent = genCharName(previewChar);
+}
+
+// Preview render loop
+let previewCtx = null;
+function initPreview() {
+  const pc = document.getElementById('char-preview-canvas');
+  if (!pc) return;
+  previewCtx = pc.getContext('2d');
+  updateCharName();
+  renderPresets();
+  requestAnimationFrame(previewLoop);
+}
+function previewLoop(t) {
+  if (previewCtx) {
+    const pc = previewCtx.canvas;
+    previewCtx.clearRect(0, 0, pc.width, pc.height);
+    // subtle animated bg
+    const hue = (t * 0.05) % 360;
+    previewCtx.fillStyle = `hsla(${hue}, 60%, 10%, 0.3)`;
+    previewCtx.fillRect(0, 0, pc.width, pc.height);
+    // Draw preview character centered, idle dancing
+    drawPreviewChar(previewChar, t);
+  }
+  if (state !== 'PLAYING') requestAnimationFrame(previewLoop);
+}
+function drawPreviewChar(c, t) {
+  if (!previewCtx) return;
+  const pc = previewCtx.canvas;
+  // Temporarily swap global ctx to preview canvas (drawBody/drawLimb/drawHead use global ctx)
+  const savedCtx = ctx;
+  ctx = previewCtx;
+  ctx.save();
+  ctx.translate(pc.width/2, pc.height * 0.62);
+  ctx.scale(0.62, 0.62);
+  const bob = Math.sin(t * 0.004) * 6;
+  ctx.translate(0, bob);
+  drawBody(c, t, 0);
+  ctx.restore();
+  ctx = savedCtx;
+}
+
+// Preset cards UI
+function renderPresets() {
+  const list = document.getElementById('preset-list');
+  if (!list) return;
+  list.innerHTML = '';
+  PRESETS.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'preset-card';
+    card.textContent = p.emoji;
+    card.title = p.name;
+    card.addEventListener('click', () => applyPreset(i));
+    list.appendChild(card);
+  });
 }
 
 // ===== DANCE MOVES =====
@@ -1454,6 +1573,28 @@ function simulateSwipe(dir) {
 // ===== START =====
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('restart-btn').addEventListener('click', startGame);
+document.getElementById('restart-main-btn').addEventListener('click', startGame);
+document.getElementById('change-char-btn').addEventListener('click', () => {
+  // Go back to character select screen
+  document.getElementById('over-screen').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+  state = 'START';
+  // restart preview loop if it stopped
+  if (!previewCtx) initPreview();
+  else requestAnimationFrame(previewLoop);
+});
+
+// ===== CHARACTER CUSTOMIZATION BUTTONS =====
+document.querySelectorAll('.ctrl-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    rerollPart(btn.dataset.part);
+    // clear preset highlight when manually customizing
+    document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('active'));
+  });
+});
+
+// ===== INIT PREVIEW ON LOAD =====
+initPreview();
 
 function startGame() {
   initAudio();
@@ -1465,7 +1606,24 @@ function startGame() {
   particles = [];
   flashT = 0;
   bossActive = false;
-  character = genCharacter();
+  // Build game character from the selected preview character (keep chosen look, reset mutations)
+  character = {
+    head: previewChar.head,
+    body: previewChar.body,
+    limbs: [...previewChar.limbs],
+    skin: previewChar.skin,
+    face: previewChar.face,
+    headSize: rand(50, 90),
+    bodyLen: rand(80, 140),
+    headPhase: Math.random() * Math.PI * 2,
+    bodyPhase: Math.random() * Math.PI * 2,
+    eyePhase: [Math.random()*Math.PI*2, Math.random()*Math.PI*2],
+    limbPhase: [0, Math.PI, Math.PI/2, -Math.PI/2],
+    bigHead:false, longNeck:false, eyesOut:false, spiralLimb:false,
+    invertColor:false, ghostTrail:false, extraLimbs:false, floatingHead:false,
+    rainbowSkin:false, bigMouth:false, crossEyes:false, spinMode:false,
+    action:'idle', actionT:0,
+  };
   replayFrames = [];
   replayCapturing = true;
   // Start BGM
