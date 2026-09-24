@@ -28,6 +28,8 @@
   #btn-record{top:14px;left:14px}
   #btn-mute{top:14px;right:74px}
   #btn-char{top:14px;right:14px}
+  #btn-filter{top:14px;right:134px;background:rgba(162,139,255,.7)}
+  .filter-label{position:absolute;top:64px;right:14px;color:#fff;font-size:10px;font-weight:900;background:rgba(0,0,0,.5);padding:3px 8px;border-radius:10px;letter-spacing:1px;pointer-events:none;font-family:inherit}
   #btn-share{bottom:20px;left:50%;transform:translateX(-50%);width:120px;height:44px;border-radius:22px;font-size:14px;letter-spacing:1px;background:linear-gradient(135deg,#39ff14,#00b347);border:none;color:#000;font-weight:900}
   .abstract-bar{position:absolute;top:70px;left:50%;transform:translateX(-50%);width:60%;height:8px;border-radius:4px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);overflow:hidden}
   .abstract-fill{height:100%;width:0%;background:linear-gradient(90deg,#39ff14,#ffd93d 50%,#ff2d95);box-shadow:0 0 8px #ff2d95;transition:width .2s}
@@ -69,6 +71,16 @@
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E")}
   .glitch-text{animation:glitch 0.3s infinite}
   @keyframes glitch{0%{text-shadow:2px 0 #ff0000,-2px 0 #00ffff}50%{text-shadow:-2px 0 #ff0000,2px 0 #00ffff}100%{text-shadow:2px 0 #ff0000,-2px 0 #00ffff}}
+  /* ===== MAGIC FILTERS ===== */
+  #c{transition:filter .25s}
+  body.flt-rainbow #c{animation:rainbow 2s linear infinite}
+  @keyframes rainbow{0%{filter:hue-rotate(0deg) saturate(1.6)}100%{filter:hue-rotate(360deg) saturate(1.6)}}
+  body.flt-strobe #c{animation:strobe 0.25s steps(2) infinite}
+  @keyframes strobe{0%{filter:brightness(1.6) contrast(1.5)}50%{filter:brightness(0.6) contrast(1.5)}}
+  body.flt-glitch #c{animation:glitchf 0.15s infinite}
+  @keyframes glitchf{0%{filter:hue-rotate(0deg) saturate(2) contrast(1.3);transform:translate(0,0)}25%{filter:hue-rotate(90deg) saturate(2) contrast(1.3);transform:translate(-2px,1px)}50%{filter:hue-rotate(180deg) saturate(2) contrast(1.3);transform:translate(2px,-1px)}75%{filter:hue-rotate(270deg) saturate(2) contrast(1.3);transform:translate(-1px,-2px)}100%{filter:hue-rotate(360deg) saturate(2) contrast(1.3);transform:translate(0,0)}}
+  body.flt-wobble #c{animation:wobblef 0.5s ease-in-out infinite}
+  @keyframes wobblef{0%,100%{filter:saturate(1.8) hue-rotate(0deg) blur(0px)}50%{filter:saturate(2.5) hue-rotate(30deg) blur(1px)}}
 </style>
 </head>
 <body>
@@ -93,7 +105,9 @@
   <div class="rec-dot" id="rec-dot"></div>
   <button class="ui-btn" id="btn-mute" title="Mute">🔊</button>
   <button class="ui-btn" id="btn-char" title="New Character">🎲</button>
+  <button class="ui-btn" id="btn-filter" title="Magic Filter">🎨</button>
   <div class="abstract-bar"><div class="abstract-fill" id="abs-fill"></div></div>
+  <div class="filter-label" id="filter-label">NORMAL</div>
   <button class="ui-btn" id="btn-share" title="Share">📤 SHARE</button>
 </div>
 
@@ -137,23 +151,45 @@ function ensureAudio(){
   if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
   if(actx.state==='suspended') actx.resume();
 }
-// BGM: 140 BPM EDM loop
+// BGM: goofy CIRCUS CALLIOPE oompah loop (with comedic wrong notes)
 function buildBGM(){
-  const bpm=140, beat=60/bpm, len=beat*8, sr=actx.sampleRate;
+  const bpm=132, beat=60/bpm, len=beat*16, sr=actx.sampleRate;
+  const N={C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,B4:493.88,
+           C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99,A5:880,B5:987.77};
+  // bouncy calliope lead (circus theme-ish)
+  const lead=[N.E5,N.F5*1.0595,N.G5,N.A5,N.B5,N.C5,N.B5,N.A5,
+              N.G5,N.E5,N.G5,N.F5*1.0595,N.E5,N.D5,N.C5,N.D5];
+  // tuba bass (oom-pah)
+  const bass=[65.41,65.41,98,65.41,73.42,73.42,110,73.42,
+              65.41,65.41,98,65.41,82.41,82.41,110,82.41];
   const buf=actx.createBuffer(2,sr*len,sr);
   for(let ch=0;ch<2;ch++){
     const d=buf.getChannelData(ch);
     for(let i=0;i<d.length;i++){
-      const t=i/sr, b=Math.floor(t/beat)%16;
+      const t=i/sr, b=Math.floor(t/beat)%16, lt=t%beat;
       let v=0;
-      if(t%beat<0.07) v+=Math.sin((t%beat)*140)*0.55*Math.exp(-(t%beat)*35);
-      const bass=[55,55,73,65,49,49,82,65];
-      v+=Math.sin(2*Math.PI*bass[b%8]*t)*0.2;
-      // suona-like lead (sawtooth with vibrato)
-      const lead=[440,554,659,784,659,554,440,330];
-      const lf=lead[b%8], lt=t%beat;
-      if(lt<0.18) v+=(Math.sin(2*Math.PI*lf*t)+Math.sin(2*Math.PI*lf*2*t)*0.5)*0.1*(1-lt/0.18);
-      if(b%2===1&&(t%beat)<0.04) v+=(Math.random()*2-1)*0.12;
+      // tuba bass (oom on beats, pah offbeats)
+      const bf=bass[b];
+      if(lt<beat*0.45) v+=Math.sin(2*Math.PI*bf*t)*0.32*Math.exp(-lt*6);
+      else v+=Math.sin(2*Math.PI*bf*1.5*t)*0.18*Math.exp(-(lt-beat*0.5)*8);
+      // calliope lead: square-ish with vibrato, comedic wrong note every 4th beat
+      let lf=lead[b];
+      if(b%4===3 && lt<beat*0.3) lf*=1.0595; // deliberately off-key (quarter-sharp-ish wrong)
+      if(lt<beat*0.5){
+        const env=(1-lt/(beat*0.5));
+        const vibrato=1+Math.sin(t*30)*0.015;
+        v+=(Math.sin(2*Math.PI*lf*t*vibrato)*0.5 + Math.sin(2*Math.PI*lf*2*t*vibrato)*0.25)*0.22*env;
+      }
+      // silly 'wah-wah' muted trombone slide between notes
+      if(lt>beat*0.5 && lt<beat*0.8){
+        const slide=(lt-beat*0.5)/(beat*0.3);
+        const wf=lead[b]*(1+slide*0.1);
+        v+=Math.sin(2*Math.PI*wf*t)*0.08*Math.sin(Math.PI*slide);
+      }
+      // duck-quack percussion on offbeats
+      if(b%2===1 && lt<0.05) v+=(Math.random()*2-1)*0.1*Math.exp(-lt*80);
+      // bounce kick
+      if(b%4===0 && lt<0.08) v+=Math.sin(lt*160)*0.4*Math.exp(-lt*40);
       d[i]=Math.max(-1,Math.min(1,v*0.85));
     }
   }
@@ -216,9 +252,10 @@ let scene, camera, renderer;
 let ctx2d=null; // 2D fallback context
 let webglOK=false;
 let charGroup, body, head, leftEye, rightEye, mouth, leftArm, rightArm, leftLeg, rightLeg, clothes;
-let leftBrow, rightBrow, leftPupil, rightPupil, tongue;
+let leftBrow, rightBrow, leftPupil, rightPupil, tongue, nose, leftEar, rightEar, leftBlush, rightBlush, accessory;
+let pupilMat, eyeWhiteMat;
 let limbs=[], heads=[];
-let expression='neutral'; // neutral / happy / angry / shocked / dizzy / dead / heart / tongue / smirk / wail
+let expression='neutral'; // neutral / happy / angry / shocked / dizzy / deadpan / tongue / smirk / sad / cool / crazy / x_eyes / heart_eyes / star_eyes / spiral_eyes / dollar_eyes / kiss / blep / ahegao / wobbly / smug
 let abstractVal=0, meltdown=false;
 let dancePhase=0, currentMove='idle', moveT=0, moveDur=1;
 let charConfig={};
@@ -285,17 +322,20 @@ function draw2DChar(t){
   // eyebrows
   ctx2d.strokeStyle='#000'; ctx2d.lineWidth=3*scale; ctx2d.lineCap='round';
   let blRot=0, brRot=0, byOff=0;
-  if(expr==='angry'){blRot=0.3;brRot=-0.3;}
+  if(expr==='angry'||expr==='ahegao'){blRot=0.3;brRot=-0.3;}
   else if(expr==='sad'){blRot=-0.2;brRot=0.2;}
-  else if(expr==='happy'){byOff=-3;}
+  else if(expr==='happy'||expr==='heart_eyes'||expr==='star_eyes'||expr==='dollar_eyes'){byOff=-3;blRot=0.1;brRot=-0.1;}
   else if(expr==='shocked'){byOff=5;}
   else if(expr==='crazy'){blRot=rand(-0.4,0.4);brRot=rand(-0.4,0.4);}
+  else if(expr==='x_eyes'){blRot=0.5;brRot=-0.5;byOff=2;}
+  else if(expr==='wobbly'){blRot=Math.sin(t*15)*0.4;brRot=Math.cos(t*15)*0.4;}
+  else if(expr==='smug'){blRot=-0.15;brRot=-0.15;}
   ctx2d.save(); ctx2d.translate(cx-14*scale,headY-22*scale+byOff*scale); ctx2d.rotate(blRot);
   ctx2d.beginPath(); ctx2d.moveTo(-10*scale,0); ctx2d.lineTo(10*scale,0); ctx2d.stroke(); ctx2d.restore();
   ctx2d.save(); ctx2d.translate(cx+14*scale,headY-22*scale+byOff*scale); ctx2d.rotate(brRot);
   ctx2d.beginPath(); ctx2d.moveTo(-10*scale,0); ctx2d.lineTo(10*scale,0); ctx2d.stroke(); ctx2d.restore();
   // eyes — expression-driven
-  let eyeR=12*scale, pupilR=5*scale;
+  let eyeR=12*scale, pupilR=5*scale, pupilColor='#000';
   if(expr==='shocked'){eyeR=16*scale;pupilR=3*scale;}
   else if(expr==='happy'){eyeR=6*scale;}
   else if(expr==='angry'){eyeR=10*scale;}
@@ -303,15 +343,34 @@ function draw2DChar(t){
   else if(expr==='crazy'){eyeR=14*scale;}
   else if(expr==='cool'){eyeR=5*scale;}
   else if(expr==='sad'){eyeR=9*scale;}
+  else if(expr==='x_eyes'){eyeR=4*scale;}
+  else if(expr==='heart_eyes'){eyeR=15*scale;pupilR=7*scale;pupilColor='#ff2d95';}
+  else if(expr==='star_eyes'){eyeR=15*scale;pupilR=7*scale;pupilColor='#ffd93d';}
+  else if(expr==='spiral_eyes'){eyeR=14*scale;pupilR=6*scale;pupilColor='#a28bff';}
+  else if(expr==='dollar_eyes'){eyeR=14*scale;pupilR=6*scale;pupilColor='#39ff14';}
+  else if(expr==='kiss'){eyeR=7*scale;}
+  else if(expr==='blep'){eyeR=11*scale;}
+  else if(expr==='ahegao'){eyeR=17*scale;pupilR=2*scale;pupilColor='#fff';}
+  else if(expr==='wobbly'){eyeR=13+Math.sin(t*20)*2*scale;}
+  else if(expr==='smug'){eyeR=8*scale;}
+  else if(expr==='deadpan'){eyeR=10*scale;}
   const px=(expr==='crazy'?rand(-3,3):Math.sin(t*3)*3)*scale;
   const py=(expr==='shocked'?-3:expr==='sad'?2:0)*scale;
   ctx2d.fillStyle='#fff';
   ctx2d.beginPath(); ctx2d.arc(cx-14*scale,headY-6*scale,eyeR,0,TAU); ctx2d.fill(); ctx2d.stroke();
   ctx2d.beginPath(); ctx2d.arc(cx+14*scale,headY-6*scale,eyeR,0,TAU); ctx2d.fill(); ctx2d.stroke();
-  if(expr!=='happy'&&expr!=='cool'){
-    ctx2d.fillStyle='#000';
+  if(expr!=='happy'&&expr!=='cool'&&expr!=='x_eyes'&&expr!=='smug'){
+    ctx2d.fillStyle=pupilColor;
     ctx2d.beginPath(); ctx2d.arc(cx-14*scale+px,headY-6*scale+py,pupilR,0,TAU); ctx2d.fill();
     ctx2d.beginPath(); ctx2d.arc(cx+14*scale+px,headY-6*scale+py,pupilR,0,TAU); ctx2d.fill();
+    // x_eyes: draw X over pupils
+    if(expr==='x_eyes'){
+      ctx2d.strokeStyle='#000'; ctx2d.lineWidth=3*scale;
+      ctx2d.beginPath(); ctx2d.moveTo(cx-14*scale-5*scale,headY-6*scale-5*scale); ctx2d.lineTo(cx-14*scale+5*scale,headY-6*scale+5*scale); ctx2d.stroke();
+      ctx2d.beginPath(); ctx2d.moveTo(cx-14*scale+5*scale,headY-6*scale-5*scale); ctx2d.lineTo(cx-14*scale-5*scale,headY-6*scale+5*scale); ctx2d.stroke();
+      ctx2d.beginPath(); ctx2d.moveTo(cx+14*scale-5*scale,headY-6*scale-5*scale); ctx2d.lineTo(cx+14*scale+5*scale,headY-6*scale+5*scale); ctx2d.stroke();
+      ctx2d.beginPath(); ctx2d.moveTo(cx+14*scale+5*scale,headY-6*scale-5*scale); ctx2d.lineTo(cx+14*scale-5*scale,headY-6*scale+5*scale); ctx2d.stroke();
+    }
   } else {
     // closed eyes (curved lines)
     ctx2d.strokeStyle='#000'; ctx2d.lineWidth=3*scale;
@@ -321,18 +380,30 @@ function draw2DChar(t){
   // mouth — expression-driven
   ctx2d.fillStyle='#882222';
   let mw=30*scale, mh=8*scale, mrot=0;
-  if(expr==='happy'){mw=36*scale;mh=10*scale;}
+  if(expr==='happy'||expr==='star_eyes'||expr==='dollar_eyes'){mw=36*scale;mh=10*scale;}
   else if(expr==='angry'){mw=24*scale;mh=12*scale;}
   else if(expr==='shocked'){mw=12*scale;mh=24*scale;}
-  else if(expr==='tongue'){mw=38*scale;mh=10*scale;}
-  else if(expr==='smirk'){mw=26*scale;mh=8*scale;mrot=0.2;}
+  else if(expr==='tongue'||expr==='blep'){mw=38*scale;mh=10*scale;}
+  else if(expr==='smirk'||expr==='smug'){mw=26*scale;mh=8*scale;mrot=0.2;}
   else if(expr==='sad'){mrot=Math.PI;}
   else if(expr==='crazy'){mw=20+rand(-10,10)*scale;mh=10+rand(-5,5)*scale;}
+  else if(expr==='x_eyes'){mw=14*scale;mh=14*scale;}
+  else if(expr==='heart_eyes'){mw=34*scale;mh=9*scale;}
+  else if(expr==='kiss'){mw=10*scale;mh=10*scale;}
+  else if(expr==='ahegao'){mw=40*scale;mh=20*scale;mrot=Math.sin(t*8)*0.3;}
+  else if(expr==='wobbly'){mw=30+Math.sin(t*15)*8*scale;mh=8+Math.cos(t*12)*4*scale;}
+  else if(expr==='deadpan'){mw=22*scale;mh=4*scale;}
   else {mw=(0.4+Math.sin(t*6)*0.1)*30*scale;mh=8*scale;}
   ctx2d.save(); ctx2d.translate(cx,headY+16*scale); ctx2d.rotate(mrot);
   ctx2d.beginPath(); ctx2d.ellipse(0,0,mw,mh,0,0,TAU); ctx2d.fill(); ctx2d.stroke();
-  if(expr==='tongue'){ctx2d.fillStyle='#ff4466';ctx2d.beginPath();ctx2d.ellipse(0,mh*0.6,mw*0.5,mh*0.6,0,0,TAU);ctx2d.fill();}
+  if(expr==='tongue'||expr==='blep'||expr==='ahegao'){ctx2d.fillStyle='#ff4466';ctx2d.beginPath();ctx2d.ellipse(0,mh*0.6,mw*0.5,mh*0.7,0,0,TAU);ctx2d.fill();}
   ctx2d.restore();
+  // blush
+  if(expr==='happy'||expr==='heart_eyes'||expr==='kiss'||expr==='smirk'||expr==='smug'){
+    ctx2d.fillStyle='rgba(255,102,136,'+(expr==='heart_eyes'?0.7:0.4)+')';
+    ctx2d.beginPath(); ctx2d.ellipse(cx-26*scale,headY+6*scale,10*scale,6*scale,0,0,TAU); ctx2d.fill();
+    ctx2d.beginPath(); ctx2d.ellipse(cx+26*scale,headY+6*scale,10*scale,6*scale,0,0,TAU); ctx2d.fill();
+  }
   // arms (rubber hose) — move speed by expression
   ctx2d.strokeStyle='#ffd8a8'; ctx2d.lineWidth=10*scale; ctx2d.lineCap='round';
   const armSwing=Math.sin(t*moveSpeed)*40*scale*(expr==='crazy'?1.5:1);
@@ -453,33 +524,120 @@ function buildCharacter(cfg){
   withOutline(headMesh); head.add(headMesh);
   heads.push(head); charGroup.add(head);
 
-  // EYES — floating independent
-  leftEye=new THREE.Group(); leftEye.position.set(-cfg.eyeDist,cfg.headSize*0.1,cfg.headSize*0.5);
-  rightEye=new THREE.Group(); rightEye.position.set(cfg.eyeDist,cfg.headSize*0.1,cfg.headSize*0.5);
-  const eyeWhite=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize,8,8),new THREE.MeshStandardMaterial({color:0xffffff}));
-  leftPupil=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.5,6,6),blackMat);
-  leftPupil.position.z=cfg.eyeSize*0.5;
+  // EYES — floating independent, bigger & cartoonier
+  leftEye=new THREE.Group(); leftEye.position.set(-cfg.eyeDist,cfg.headSize*0.12,cfg.headSize*0.5);
+  rightEye=new THREE.Group(); rightEye.position.set(cfg.eyeDist,cfg.headSize*0.12,cfg.headSize*0.5);
+  eyeWhiteMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.3});
+  pupilMat=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.4});
+  const eyeWhite=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*1.15,10,10),eyeWhiteMat);
+  leftPupil=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.55,8,8),pupilMat);
+  leftPupil.position.z=cfg.eyeSize*0.6;
   rightPupil=leftPupil.clone();
-  rightPupil.position.z=cfg.eyeSize*0.5;
+  rightPupil.position.z=cfg.eyeSize*0.6;
   leftEye.add(eyeWhite.clone(), leftPupil);
   rightEye.add(eyeWhite.clone(), rightPupil);
   head.add(leftEye,rightEye);
 
-  // EYEBROWS
-  leftBrow=new THREE.Mesh(new THREE.BoxGeometry(cfg.eyeSize*1.6,cfg.eyeSize*0.25,0.04),blackMat);
-  leftBrow.position.set(-cfg.eyeDist,cfg.headSize*0.32,cfg.headSize*0.5);
+  // EYEBROWS — thicker
+  leftBrow=new THREE.Mesh(new THREE.BoxGeometry(cfg.eyeSize*1.8,cfg.eyeSize*0.32,0.05),blackMat);
+  leftBrow.position.set(-cfg.eyeDist,cfg.headSize*0.36,cfg.headSize*0.5);
   rightBrow=leftBrow.clone();
   rightBrow.position.x=cfg.eyeDist;
   head.add(leftBrow,rightBrow);
 
+  // NOSE
+  nose=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.35,8,8),skinMat);
+  nose.position.set(0,-cfg.headSize*0.02,cfg.headSize*0.56);
+  nose.scale.set(0.8,1,0.8);
+  head.add(nose);
+
+  // EARS
+  leftEar=new THREE.Mesh(new THREE.SphereGeometry(cfg.headSize*0.18,8,8),skinMat);
+  leftEar.position.set(-cfg.headSize*0.62,cfg.headSize*0.05,0);
+  leftEar.scale.set(0.6,1,0.6);
+  rightEar=leftEar.clone(); rightEar.position.x=cfg.headSize*0.62;
+  head.add(leftEar,rightEar);
+
+  // BLUSH (cheeks)
+  const blushMat=new THREE.MeshStandardMaterial({color:0xff6688,transparent:true,opacity:0.55,roughness:0.8});
+  leftBlush=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.7,8,8),blushMat);
+  leftBlush.position.set(-cfg.eyeDist*1.6,-cfg.headSize*0.05,cfg.headSize*0.46);
+  leftBlush.scale.set(1.2,0.7,0.3);
+  rightBlush=leftBlush.clone(); rightBlush.position.x=cfg.eyeDist*1.6;
+  head.add(leftBlush,rightBlush);
+
   // MOUTH — sausage + tongue
-  mouth=new THREE.Group(); mouth.position.set(0,-cfg.headSize*0.2,cfg.headSize*0.5);
+  mouth=new THREE.Group(); mouth.position.set(0,-cfg.headSize*0.22,cfg.headSize*0.5);
   const mouthMesh=new THREE.Mesh(new THREE.CapsuleGeometry(0.05,cfg.mouthW,4,6),new THREE.MeshStandardMaterial({color:0x882222}));
   mouthMesh.rotation.z=Math.PI/2; mouth.add(mouthMesh);
   tongue=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.6,8,8),new THREE.MeshStandardMaterial({color:0xff4466}));
   tongue.position.set(0,-0.05,cfg.headSize*0.05); tongue.scale.y=0.5; tongue.visible=false;
   mouth.add(tongue);
   head.add(mouth);
+
+  // ACCESSORY (random hat/glasses/mustache/hair)
+  const acc=pick(['none','tophat','cap','crown','party','sunglasses','glasses','monocle','mustache','hair']);
+  accessory=new THREE.Group();
+  const goldMat=new THREE.MeshStandardMaterial({color:0xffd93d,roughness:0.3,metalness:0.6});
+  if(acc==='tophat'){
+    const brim=new THREE.Mesh(new THREE.CylinderGeometry(cfg.headSize*0.7,cfg.headSize*0.7,0.08,16),blackMat);
+    const top=new THREE.Mesh(new THREE.CylinderGeometry(cfg.headSize*0.5,cfg.headSize*0.5,cfg.headSize*0.6,16),blackMat);
+    top.position.y=cfg.headSize*0.34;
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(cfg.headSize*0.51,cfg.headSize*0.51,0.08,16),new THREE.MeshStandardMaterial({color:0xff2d95}));
+    band.position.y=cfg.headSize*0.12;
+    accessory.add(brim,top,band);
+  } else if(acc==='cap'){
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(cfg.headSize*0.62,12,8,0,TAU,0,Math.PI/2),clothMat);
+    cap.position.y=cfg.headSize*0.05;
+    const visor=new THREE.Mesh(new THREE.BoxGeometry(cfg.headSize*0.7,0.06,cfg.headSize*0.5),clothMat);
+    visor.position.set(0,cfg.headSize*0.05,cfg.headSize*0.45);
+    accessory.add(cap,visor);
+  } else if(acc==='crown'){
+    for(let i=0;i<5;i++){
+      const a=i/5*TAU;
+      const spike=new THREE.Mesh(new THREE.ConeGeometry(cfg.headSize*0.1,cfg.headSize*0.35,4),goldMat);
+      spike.position.set(Math.cos(a)*cfg.headSize*0.5,cfg.headSize*0.45,Math.sin(a)*cfg.headSize*0.5);
+      accessory.add(spike);
+    }
+    const band=new THREE.Mesh(new THREE.TorusGeometry(cfg.headSize*0.5,0.05,6,16),goldMat);
+    band.rotation.x=Math.PI/2; band.position.y=cfg.headSize*0.3;
+    accessory.add(band);
+  } else if(acc==='party'){
+    const hat=new THREE.Mesh(new THREE.ConeGeometry(cfg.headSize*0.4,cfg.headSize*0.9,8),new THREE.MeshStandardMaterial({color:0xff2d95}));
+    hat.position.y=cfg.headSize*0.5;
+    const pom=new THREE.Mesh(new THREE.SphereGeometry(cfg.headSize*0.12,8,8),new THREE.MeshStandardMaterial({color:0xffd93d}));
+    pom.position.y=cfg.headSize*0.98;
+    accessory.add(hat,pom);
+  } else if(acc==='sunglasses'){
+    const l1=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.9,10,10),new THREE.MeshStandardMaterial({color:0x000000,metalness:0.8,roughness:0.2}));
+    l1.position.set(-cfg.eyeDist,cfg.headSize*0.12,cfg.headSize*0.52); l1.scale.z=0.4;
+    const l2=l1.clone(); l2.position.x=cfg.eyeDist;
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(cfg.eyeDist*2,cfg.eyeSize*0.2,0.05),blackMat);
+    bar.position.set(0,cfg.headSize*0.12,cfg.headSize*0.52);
+    accessory.add(l1,l2,bar);
+  } else if(acc==='glasses'){
+    const f1=new THREE.Mesh(new THREE.TorusGeometry(cfg.eyeSize*0.95,0.03,6,16),blackMat);
+    f1.position.set(-cfg.eyeDist,cfg.headSize*0.12,cfg.headSize*0.52);
+    const f2=f1.clone(); f2.position.x=cfg.eyeDist;
+    const br=new THREE.Mesh(new THREE.BoxGeometry(cfg.eyeDist*2-0.1,0.02,0.02),blackMat);
+    br.position.set(0,cfg.headSize*0.12,cfg.headSize*0.52);
+    accessory.add(f1,f2,br);
+  } else if(acc==='monocle'){
+    const m=new THREE.Mesh(new THREE.TorusGeometry(cfg.eyeSize*0.95,0.04,6,16),goldMat);
+    m.position.set(-cfg.eyeDist,cfg.headSize*0.12,cfg.headSize*0.52);
+    const chain=new THREE.Mesh(new THREE.CylinderGeometry(0.01,0.01,cfg.headSize*0.5,4),goldMat);
+    chain.position.set(-cfg.eyeDist*1.3,-cfg.headSize*0.15,cfg.headSize*0.5);
+    accessory.add(m,chain);
+  } else if(acc==='mustache'){
+    const mush=new THREE.Mesh(new THREE.BoxGeometry(cfg.mouthW*1.6,cfg.eyeSize*0.5,0.06),blackMat);
+    mush.position.set(0,-cfg.headSize*0.14,cfg.headSize*0.54);
+    accessory.add(mush);
+  } else if(acc==='hair'){
+    const hair=new THREE.Mesh(new THREE.SphereGeometry(cfg.headSize*0.64,12,8,0,TAU,0,Math.PI*0.6),new THREE.MeshStandardMaterial({color:0x5a3a1a}));
+    hair.position.y=cfg.headSize*0.1;
+    accessory.add(hair);
+  }
+  head.add(accessory);
 
   // TV screen face
   if(cfg.headType==='tv'){
@@ -541,7 +699,22 @@ const MOVES=['idle','electric_shake','society_shake','kemusan','flower_hands','h
   'milly_rock','hit_the_quan','juju_on_that_beat','mannequin_challenge','dab_savage',
   'shoot_dance','bop_it','floss_dance','hit_it','woah','swing','groove','vibe',
   'chill','zone_out','glitch_out','melt','explode','implode','vibrate','phase',
-  'flicker','strobe','hyper','frenzy','berserk','go_mode','insane','unhinged'
+  'flicker','strobe','hyper','frenzy','berserk','go_mode','insane','unhinged',
+  // modern brainrot / meme moves
+  'skibidi','rizz','sigma','gyatt','ohio','fanum_tax','mewing','looksmaxxing',
+  'goblin_mode','brainrot','twerk','booty_pop','shoulder_roll','neck_roll','belly_dance','hula',
+  'viking','pirate','cowboy','ghost_dance','bounce','hopscotch','dancing_banana','spongebob_dance',
+  'patrick_star','squidward_dance','naruto_run','jojo_pose','power_up','kamehameha',
+  'bird_dance','monkey_dance','frog_hopping','crab_dance','drop_it','pop_lock','body_wave',
+  'chest_bump','nose_pick','butt_scratch','victory_dance','taunt','flexing','muscle_pose',
+  'eye_twitch','neck_snap','wobble_extreme','goblin_walk','chicken_walk','duck_waddle',
+  'robot_twerk','zombie_limp','mummy_walk','ghost_float','angel_wings','devil_horns',
+  'money_rain','crown_wave','king_walk','queen_strut','sassy_walk','model_walk',
+  'catwalk','runway','fall_over','face_plant','trip','slip','slide_on_floor','roll_away',
+  'spin_fall','knee_slide','belly_flop','swan_dive','swan_pose','flamingo','peacock',
+  'pigeon_toed','pigeon_step','flap_hard','wing_flap','fly_away','fly_down',
+  'sky_fall','bounce_wall','bonk_head','rubber_neck','double_take','slow_mo','speed_up',
+  'glitch_step','freeze_frame','rewind','fast_forward','pause_play','meme_pose','thirst_trap'
 ];
 const MOVE_NAMES={
   electric_shake:'Electric Shake',society_shake:'Society Shake',kemusan:'Kemusan',flower_hands:'Flower Hands',
@@ -583,7 +756,31 @@ const MOVE_NAMES={
   glitch_out:'GLITCH OUT',melt:'Melt',explode:'EXPLODE',implode:'Implode',
   vibrate:'VIBRATE',phase:'Phase Out',flicker:'Flicker',strobe:'STROBE',
   hyper:'HYPER',frenzy:'FRENZY',berserk:'BERSERK',go_mode:'GO MODE',insane:'INSANE',
-  unhinged:'UNHINGED'
+  unhinged:'UNHINGED',
+  skibidi:'Skibidi',rizz:'Rizz',sigma:'Sigma',gyatt:'GYATT',ohio:'Ohio',fanum_tax:'Fanum Tax',
+  mewing:'Mewing',looksmaxxing:'Looksmaxxing',goblin_mode:'Goblin Mode',brainrot:'BRAINROT',
+  twerk:'Twerk',booty_pop:'Booty Pop',shoulder_roll:'Shoulder Roll',neck_roll:'Neck Roll',
+  belly_dance:'Belly Dance',hula:'Hula',viking:'Viking',pirate:'Pirate',cowboy:'Cowboy',
+  ghost_dance:'Ghost',bounce:'BOUNCE',hopscotch:'Hopscotch',dancing_banana:'Dancing Banana',
+  spongebob_dance:'Spongebob',patrick_star:'Patrick',squidward_dance:'Squidward',
+  naruto_run:'Naruto Run',jojo_pose:'JoJo Pose',power_up:'POWER UP',kamehameha:'KAMEHAMEHA',
+  bird_dance:'Bird',monkey_dance:'Monkey',frog_hopping:'Frog',crab_dance:'Crab',drop_it:'DROP IT',
+  pop_lock:'Pop & Lock',body_wave:'Body Wave',chest_bump:'Chest Bump',nose_pick:'Nose Pick',
+  butt_scratch:'Butt Scratch',victory_dance:'VICTORY',taunt:'Taunt',flexing:'FLEX',
+  muscle_pose:'Muscle Pose',eye_twitch:'Eye Twitch',neck_snap:'Neck Snap',
+  wobble_extreme:'WOBBLE',goblin_walk:'Goblin Walk',chicken_walk:'Chicken Walk',duck_waddle:'Duck',
+  robot_twerk:'Robot Twerk',zombie_limp:'Zombie Limp',mummy_walk:'Mummy',ghost_float:'Ghost Float',
+  angel_wings:'Angel',devil_horns:'Devil',money_rain:'Money Rain',crown_wave:'Crown Wave',
+  king_walk:'King Walk',queen_strut:'Queen Strut',sassy_walk:'Sassy Walk',model_walk:'Model Walk',
+  catwalk:'Catwalk',runway:'Runway',fall_over:'FALL',face_plant:'FACE PLANT',trip:'Trip',
+  slip:'Slip',slide_on_floor:'Slide Floor',roll_away:'Roll Away',spin_fall:'Spin Fall',
+  knee_slide:'Knee Slide',belly_flop:'Belly Flop',swan_dive:'Swan Dive',swan_pose:'Swan',
+  flamingo:'Flamingo',peacock:'Peacock',pigeon_toed:'Pigeon Toes',pigeon_step:'Pigeon Step',
+  flap_hard:'FLAP',wing_flap:'Wing Flap',fly_away:'Fly Away',fly_down:'Fly Down',
+  sky_fall:'SKY FALL',bounce_wall:'Bounce Wall',bonk_head:'BONK',rubber_neck:'Rubber Neck',
+  double_take:'Double Take',slow_mo:'SLOW MO',speed_up:'SPEED UP',glitch_step:'Glitch Step',
+  freeze_frame:'FREEZE',rewind:'REWIND',fast_forward:'FFWD',pause_play:'PAUSE',
+  meme_pose:'MEME POSE',thirst_trap:'Thirst Trap'
 };
 const MOVE_EMOJI={electric_shake:'⚡',society_shake:'💃',kemusan:'🕺',flower_hands:'🌸',
   headbang:'🤘',hip_shake:'🍑',twitch:'🌀',moonwalk:'🌙',crab_step:'🦀',robot:'🤖',
@@ -612,7 +809,26 @@ const MOVE_EMOJI={electric_shake:'⚡',society_shake:'💃',kemusan:'🕺',flowe
   dab_savage:'🤙',shoot_dance:'🔫',bop_it:'🎵',floss_dance:'🦷',hit_it:'💥',woah:'💫',
   swing:'🤾',groove:'🎶',vibe:'✨',chill:'😎',zone_out:'😵‍💫',glitch_out:'👾',melt:'🫠',
   explode:'💥',implode:'🌀',vibrate:'📳',phase:'👻',flicker:'📺',strobe:'⚡',hyper:'⚡',
-  frenzy:'🤪',berserk:'😡',go_mode:'🚀',insane:'🤯',unhinged:'🤪'
+  frenzy:'🤪',berserk:'😡',go_mode:'🚀',insane:'🤯',unhinged:'🤪',
+  skibidi:'🚽',rizz:'😏',sigma:'🗿',gyatt:'😳',ohio:'💀',fanum_tax:'🍔',mewing:'😬',
+  looksmaxxing:'💪',goblin_mode:'👺',brainrot:'🧠',twerk:'🍑',booty_pop:'💥',
+  shoulder_roll:'🤸',neck_roll:'🤪',belly_dance:'💃',hula:'🌺',viking:'⚔️',pirate:'🏴‍☠️',
+  cowboy:'🤠',ghost_dance:'👻',bounce:'🏀',hopscotch:'🦘',dancing_banana:'🍌',
+  spongebob_dance:'🧽',patrick_star:'⭐',squidward_dance:'🎷',naruto_run:'🍥',jojo_pose:'👌',
+  power_up:'⚡',kamehameha:'🔫',bird_dance:'🐦',monkey_dance:'🐵',frog_hopping:'🐸',
+  crab_dance:'🦀',drop_it:'💧',pop_lock:'🔒',body_wave:'🌊',chest_bump:'💥',nose_pick:'👃',
+  butt_scratch:'🤪',victory_dance:'🏆',taunt:'😜',flexing:'💪',muscle_pose:'😤',
+  eye_twitch:'👁️',neck_snap:'😬',wobble_extreme:'🫠',goblin_walk:'👹',chicken_walk:'🐔',
+  duck_waddle:'🦆',robot_twerk:'🤖',zombie_limp:'🧟',mummy_walk:'🧟',ghost_float:'👻',
+  angel_wings:'😇',devil_horns:'😈',money_rain:'💵',crown_wave:'👑',king_walk:'🤴',
+  queen_strut:'👸',sassy_walk:'💁',model_walk:'🚶',catwalk:'🐈',runway:'✨',
+  fall_over:'💫',face_plant:'😵',trip:'😬',slip:'🌀',slide_on_floor:'🪑',roll_away:'🌀',
+  spin_fall:'💫',knee_slide:'🧎',belly_flop:'💦',swan_dive:'🦢',swan_pose:'🦢',
+  flamingo:'🦩',peacock:'🦚',pigeon_toed:'🐦',pigeon_step:'🕊️',flap_hard:'🦅',
+  wing_flap:'🕊️',fly_away:'🕊️',fly_down:'⬇️',sky_fall:'☁️',bounce_wall:'🧱',
+  bonk_head:'🔨',rubber_neck:'🦒',double_take:'😳',slow_mo:'🐌',speed_up:'💨',
+  glitch_step:'👾',freeze_frame:'🧊',rewind:'⏪',fast_forward:'⏩',pause_play:'⏸️',
+  meme_pose:'📸',thirst_trap:'🥵'
 };
 
 // expression per move (drives eyes/mouth/brows)
@@ -651,7 +867,30 @@ const MOVE_EXPR={
   groove:'happy',vibe:'cool',chill:'deadpan',zone_out:'dizzy',glitch_out:'crazy',melt:'sad',
   explode:'shocked',implode:'shocked',vibrate:'crazy',phase:'dizzy',flicker:'shocked',
   strobe:'shocked',hyper:'crazy',frenzy:'crazy',berserk:'angry',go_mode:'shocked',
-  insane:'crazy',unhinged:'crazy'
+  insane:'crazy',unhinged:'crazy',
+  skibidi:'crazy',rizz:'smug',sigma:'deadpan',gyatt:'shocked',ohio:'x_eyes',fanum_tax:'dollar_eyes',
+  mewing:'smug',looksmaxxing:'star_eyes',goblin_mode:'angry',brainrot:'spiral_eyes',
+  twerk:'tongue',booty_pop:'smirk',shoulder_roll:'smirk',neck_roll:'dizzy',belly_dance:'smirk',
+  hula:'happy',viking:'angry',pirate:'smug',cowboy:'smirk',ghost_dance:'deadpan',
+  bounce:'happy',hopscotch:'happy',dancing_banana:'happy',spongebob_dance:'crazy',
+  patrick_star:'deadpan',squidward_dance:'smug',naruto_run:'angry',jojo_pose:'smug',
+  power_up:'shocked',kamehameha:'angry',bird_dance:'tongue',monkey_dance:'crazy',
+  frog_hopping:'happy',crab_dance:'smirk',drop_it:'smirk',pop_lock:'cool',body_wave:'smirk',
+  chest_bump:'shocked',nose_pick:'smug',butt_scratch:'smirk',victory_dance:'star_eyes',
+  taunt:'smug',flexing:'star_eyes',muscle_pose:'smug',eye_twitch:'wobbly',neck_snap:'shocked',
+  wobble_extreme:'wobbly',goblin_walk:'angry',chicken_walk:'tongue',duck_waddle:'tongue',
+  robot_twerk:'deadpan',zombie_limp:'deadpan',mummy_walk:'deadpan',ghost_float:'deadpan',
+  angel_wings:'heart_eyes',devil_horns:'angry',money_rain:'dollar_eyes',crown_wave:'smug',
+  king_walk:'smug',queen_strut:'smug',sassy_walk:'smug',model_walk:'smug',
+  catwalk:'smug',runway:'smug',fall_over:'shocked',face_plant:'x_eyes',trip:'shocked',
+  slip:'dizzy',slide_on_floor:'happy',roll_away:'dizzy',spin_fall:'dizzy',
+  knee_slide:'shocked',belly_flop:'shocked',swan_dive:'shocked',swan_pose:'smug',
+  flamingo:'smug',peacock:'smug',pigeon_toed:'smug',pigeon_step:'happy',
+  flap_hard:'tongue',wing_flap:'happy',fly_away:'shocked',fly_down:'shocked',
+  sky_fall:'shocked',bounce_wall:'shocked',bonk_head:'x_eyes',rubber_neck:'dizzy',
+  double_take:'shocked',slow_mo:'dizzy',speed_up:'crazy',glitch_step:'crazy',
+  freeze_frame:'deadpan',rewind:'dizzy',fast_forward:'crazy',pause_play:'deadpan',
+  meme_pose:'smug',thirst_trap:'heart_eyes'
 };
 
 function triggerMove(move){
@@ -742,34 +981,52 @@ function applyExpression(t){
   const expr=MOVE_EXPR[currentMove]||'neutral';
   expression=expr;
   // eyes scale (0 = closed, 1 = normal, >1 = wide)
-  let es=1, pupilX=0, pupilY=0;
+  let es=1, pupilX=0, pupilY=0, pupCol=0x111111, eyeWhiteCol=0xffffff;
   if(expr==='happy'){es=0.3+Math.abs(Math.sin(t*8))*0.2;}
   else if(expr==='angry'){es=0.8; pupilX=rand(-0.02,0.02);}
   else if(expr==='shocked'){es=1.6+Math.sin(t*12)*0.2; pupilY=-0.03;}
   else if(expr==='dizzy'){es=1.1; pupilX=Math.sin(t*10)*0.04; pupilY=Math.cos(t*10)*0.04;}
-  else if(expr==='dead'){es=0.1;}
-  else if(expr==='heart'){es=1.2;}
+  else if(expr==='x_eyes'){es=0.25; pupCol=0x000000;}
+  else if(expr==='heart_eyes'){es=1.3; pupCol=0xff2d95;}
+  else if(expr==='star_eyes'){es=1.35; pupCol=0xffd93d; pupilX=Math.sin(t*12)*0.01;}
+  else if(expr==='spiral_eyes'){es=1.15; pupilX=Math.sin(t*15)*0.03; pupilY=Math.cos(t*15)*0.03; pupCol=0xa28bff;}
+  else if(expr==='dollar_eyes'){es=1.2; pupCol=0x39ff14;}
+  else if(expr==='kiss'){es=0.5;}
+  else if(expr==='blep'){es=0.95; tongue.visible=true;}
+  else if(expr==='ahegao'){es=1.5; pupilY=-0.04; tongue.visible=true; pupCol=0xffffff;}
+  else if(expr==='wobbly'){es=1.1+Math.sin(t*20)*0.1; pupilX=Math.sin(t*25)*0.04; pupilY=Math.cos(t*18)*0.03;}
+  else if(expr==='smug'){es=0.55; pupilX=0.025;}
   else if(expr==='tongue'){es=0.9; tongue.visible=true;}
   else if(expr==='smirk'){es=0.7; pupilX=0.02;}
-  else if(expr==='wail'){es=0.5;}
   else if(expr==='crazy'){es=1.3+rand(-0.1,0.1); pupilX=rand(-0.05,0.05); pupilY=rand(-0.05,0.05);}
   else if(expr==='cool'){es=0.5;}
   else if(expr==='sad'){es=0.6; pupilY=0.03;}
+  else if(expr==='deadpan'){es=0.85; pupilY=0.01;}
   else {es=1;} // neutral
-  if(expr!=='tongue') tongue.visible=false;
+  if(expr!=='tongue'&&expr!=='blep'&&expr!=='ahegao') tongue.visible=false;
   const eyePop=meltdown?1.5+Math.sin(t*10)*0.3:1;
   leftEye.scale.setScalar(es*eyePop); rightEye.scale.setScalar(es*eyePop);
   if(leftPupil){leftPupil.position.x=pupilX; leftPupil.position.y=pupilY;}
   if(rightPupil){rightPupil.position.x=pupilX; rightPupil.position.y=pupilY;}
+  if(pupilMat){pupilMat.color.setHex(pupCol);}
+  if(eyeWhiteMat){eyeWhiteMat.color.setHex(eyeWhiteCol);}
   // mouth shape
   let msx=1, msy=1, mrot=0;
   if(expr==='happy'){msx=1.2; msy=0.6;}
   else if(expr==='angry'){msx=0.8; msy=1.2;}
   else if(expr==='shocked'){msx=0.5; msy=1.8;}
   else if(expr==='dizzy'){msx=1+Math.sin(t*10)*0.3; msy=1; mrot=Math.sin(t*8)*0.3;}
+  else if(expr==='x_eyes'){msx=0.5; msy=0.5;}
+  else if(expr==='heart_eyes'){msx=1.1; msy=0.9;}
+  else if(expr==='star_eyes'){msx=1.2; msy=0.7;}
+  else if(expr==='dollar_eyes'){msx=1.1; msy=0.8;}
+  else if(expr==='kiss'){msx=0.4; msy=0.4;}
+  else if(expr==='blep'){msx=1.0; msy=0.6;}
+  else if(expr==='ahegao'){msx=1.4; msy=1.6; mrot=Math.sin(t*8)*0.3;}
+  else if(expr==='wobbly'){msx=1+Math.sin(t*15)*0.3; msy=1+Math.cos(t*12)*0.2;}
+  else if(expr==='smug'){msx=0.85; msy=0.6; mrot=0.15;}
   else if(expr==='tongue'){msx=1.3; msy=0.8;}
   else if(expr==='smirk'){msx=0.9; msy=0.7; mrot=0.2;}
-  else if(expr==='wail'){msx=0.6; msy=1.5;}
   else if(expr==='sad'){msx=1; msy=0.7; mrot=Math.PI;}
   else if(expr==='deadpan'){msx=0.7; msy=0.5;}
   else if(expr==='crazy'){msx=1+rand(-0.3,0.3); msy=1+rand(-0.2,0.2);}
@@ -785,8 +1042,20 @@ function applyExpression(t){
     else if(expr==='happy'){by=-0.02;}
     else if(expr==='dizzy'){bl=Math.sin(t*8)*0.3; br=-Math.sin(t*8)*0.3;}
     else if(expr==='crazy'){bl=rand(-0.5,0.5); br=rand(-0.5,0.5);}
+    else if(expr==='x_eyes'){bl=0.5; br=-0.5; by=0.02;}
+    else if(expr==='heart_eyes'||expr==='star_eyes'||expr==='dollar_eyes'){by=-0.03; bl=0.1; br=-0.1;}
+    else if(expr==='ahegao'){bl=-0.3; br=0.3; by=0.04;}
+    else if(expr==='smug'){bl=-0.15; br=-0.15;}
+    else if(expr==='wobbly'){bl=Math.sin(t*15)*0.4; br=Math.cos(t*15)*0.4;}
     leftBrow.rotation.z=bl; rightBrow.rotation.z=br;
     leftBrow.position.y=cfg0(by); rightBrow.position.y=cfg0(by);
+  }
+  // blush intensifies for certain expressions
+  if(leftBlush){
+    const blushOn=(expr==='happy'||expr==='kiss'||expr==='smirk'||expr==='smug'||expr==='heart_eyes');
+    const op=blushOn?0.7:0.25;
+    leftBlush.material.opacity=op+(expr==='heart_eyes'?0.3:0);
+    rightBlush.material.opacity=leftBlush.material.opacity;
   }
 }
 function cfg0(v){ return (charConfig?charConfig.headSize*0.32:0.32)+v; }
@@ -966,8 +1235,20 @@ function animateChar(t, dt){
   else if(m==='go_mode'){armL=Math.sin(t*15)*1.2;armR=Math.cos(t*15)*1.2;legL=Math.sin(t*15)*0.6;legR=Math.cos(t*15)*0.6;headRot=Math.sin(t*15)*0.3;bob+=Math.abs(Math.sin(t*15))*0.2;}
   else if(m==='insane'){armL=rand(-2,2);armR=rand(-2,2);legL=rand(-1.2,1.2);legR=rand(-1.2,1.2);headRot=rand(-1,1);bodyRot=rand(-0.5,0.5);scaleY=1+rand(-0.3,0.3);}
   else if(m==='unhinged'){armL=rand(-2.5,2.5);armR=rand(-2.5,2.5);legL=rand(-1.5,1.5);legR=rand(-1.5,1.5);headRot=rand(-1.2,1.2);bodyRot=rand(-0.6,0.6);scaleY=1+rand(-0.4,0.4);scaleX=1+rand(-0.3,0.3);}
-  else{ // idle
+  else if(m==='idle'){
     armL=Math.sin(t*3)*0.2;armR=-armL;headRot=Math.sin(t*2)*0.08;
+  } else {
+    // generic move: deterministic unique animation from move name hash
+    let h=0; for(let i=0;i<m.length;i++) h=(h*31+m.charCodeAt(i))>>>0;
+    const f1=6+(h%10), f2=3+(h%7), ph=(h%100)/100*TAU;
+    const amp=0.5+((h>>3)%6)/10;
+    armL=Math.sin(t*f1+ph)*amp; armR=Math.cos(t*f1+ph)*amp;
+    legL=Math.sin(t*f2+ph)*0.4; legR=-legL;
+    bodyRot=Math.sin(t*(f1*0.5)+ph)*0.2;
+    headRot=Math.sin(t*f2+ph)*0.2;
+    bob+=Math.abs(Math.sin(t*f1+ph))*0.1;
+    if(h%3===0) scaleY=1+Math.sin(t*f1+ph)*0.1;
+    if(h%5===0) bodyX=Math.sin(t*f2)*0.08;
   }
 
   // apply transforms
@@ -1268,8 +1549,34 @@ function startGame(){
   }
 }
 
+// ===== MAGIC FILTERS =====
+const FILTERS=[
+  {name:'NORMAL', cls:'', css:'none'},
+  {name:'INVERT', cls:'', css:'invert(1) hue-rotate(180deg)'},
+  {name:'PSYCHO', cls:'', css:'hue-rotate(180deg) saturate(2.2) contrast(1.3)'},
+  {name:'THERMAL', cls:'', css:'invert(1) hue-rotate(90deg) saturate(1.6) contrast(1.2)'},
+  {name:'ACID', cls:'', css:'hue-rotate(60deg) saturate(2.8) contrast(1.2)'},
+  {name:'XRAY', cls:'', css:'invert(1) grayscale(1) contrast(1.6)'},
+  {name:'CRT', cls:'', css:'contrast(1.5) brightness(1.1) saturate(1.3)'},
+  {name:'RAINBOW', cls:'flt-rainbow', css:''},
+  {name:'STROBE', cls:'flt-strobe', css:''},
+  {name:'GLITCH', cls:'flt-glitch', css:''},
+  {name:'WOBBLE', cls:'flt-wobble', css:''},
+];
+let filterIdx=0;
+function cycleFilter(){
+  filterIdx=(filterIdx+1)%FILTERS.length;
+  const f=FILTERS[filterIdx];
+  document.body.classList.remove('flt-rainbow','flt-strobe','flt-glitch','flt-wobble');
+  canvas.style.filter=f.css;
+  if(f.cls) document.body.classList.add(f.cls);
+  document.getElementById('filter-label').textContent=f.name;
+  sfx(pick(['twitch','squeaky','pop','spring']));
+}
+
 // ===== UI wiring =====
 document.getElementById('btn-start').addEventListener('click',startGame);
+document.getElementById('btn-filter').addEventListener('click',cycleFilter);
 document.getElementById('btn-char').addEventListener('click',()=>{
   charConfig=genChar();
   if(webglOK) buildCharacter(charConfig);
