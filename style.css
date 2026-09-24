@@ -131,6 +131,20 @@ html, body {
 .chaos-box .stat-label { color:#ff2d95; }
 .stat-val { font-size:20px; font-weight:bold; }
 
+.back-btn {
+  position:absolute; top:14px; right:16px; z-index:30;
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(0,0,0,.65); border:2px solid rgba(255,255,255,.35);
+  color:#fff; font-size:20px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 10px rgba(0,0,0,.5);
+  transition:all .12s;
+  font-family:inherit;
+  pointer-events:auto;
+}
+.back-btn:hover { background:#ff2d95; border-color:#fff; transform:scale(1.08); }
+.back-btn:active { transform:scale(.9); }
+
 .judgement {
   position:absolute; top:38%; left:50%; transform:translateX(-50%);
   font-size:36px; font-weight:bold; letter-spacing:3px;

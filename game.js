@@ -1575,14 +1575,29 @@ document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('restart-btn').addEventListener('click', startGame);
 document.getElementById('restart-main-btn').addEventListener('click', startGame);
 document.getElementById('change-char-btn').addEventListener('click', () => {
-  // Go back to character select screen
+  backToSelect();
+});
+
+// Back to character select from anywhere (HUD button)
+function backToSelect() {
+  // Stop BGM
+  try { if (musicNode) musicNode.stop(); } catch(e) {}
+  musicNode = null;
+  // Reset game state
+  state = 'START';
+  notes = [];
+  particles = [];
+  score = 0; combo = 0; maxCombo = 0; chaos = 0;
+  // Show start screen, hide HUD and over screen
+  document.getElementById('hud').classList.add('hidden');
   document.getElementById('over-screen').classList.add('hidden');
   document.getElementById('start-screen').classList.remove('hidden');
-  state = 'START';
-  // restart preview loop if it stopped
+  document.getElementById('popups').innerHTML = '';
+  // Restart character preview loop
   if (!previewCtx) initPreview();
   else requestAnimationFrame(previewLoop);
-});
+}
+document.getElementById('back-btn').addEventListener('click', backToSelect);
 
 // ===== CHARACTER CUSTOMIZATION BUTTONS =====
 document.querySelectorAll('.ctrl-btn').forEach(btn => {
