@@ -255,7 +255,7 @@ let charGroup, body, head, leftEye, rightEye, mouth, leftArm, rightArm, leftLeg,
 let leftBrow, rightBrow, leftPupil, rightPupil, tongue, nose, leftEar, rightEar, leftBlush, rightBlush, accessory;
 let pupilMat, eyeWhiteMat;
 let limbs=[], heads=[];
-let expression='neutral'; // neutral / happy / angry / shocked / dizzy / deadpan / tongue / smirk / sad / cool / crazy / x_eyes / heart_eyes / star_eyes / spiral_eyes / dollar_eyes / kiss / blep / ahegao / wobbly / smug
+let expression='neutral'; // neutral / happy / angry / shocked / dizzy / deadpan / tongue / smirk / sad / cool / crazy / x_eyes / heart_eyes / star_eyes / spiral_eyes / dollar_eyes / kiss / blep / ahegao / wobbly / smug / bug_eyes / jaw_drop / scream / maniacal / eye_pop / cross_extreme / tongue_roll / drool / death_stare / love_burst / money_mouth / exploding
 let abstractVal=0, meltdown=false;
 let dancePhase=0, currentMove='idle', moveT=0, moveDur=1;
 let charConfig={};
@@ -354,6 +354,18 @@ function draw2DChar(t){
   else if(expr==='wobbly'){eyeR=13+Math.sin(t*20)*2*scale;}
   else if(expr==='smug'){eyeR=8*scale;}
   else if(expr==='deadpan'){eyeR=10*scale;}
+  else if(expr==='bug_eyes'){eyeR=22*scale;pupilR=4*scale;}
+  else if(expr==='jaw_drop'){eyeR=17*scale;pupilR=4*scale;}
+  else if(expr==='scream'){eyeR=20*scale;pupilR=3*scale;}
+  else if(expr==='maniacal'){eyeR=16+rand(-3,3)*scale;pupilR=6*scale;pupilColor='#ff2222';}
+  else if(expr==='eye_pop'){eyeR=20*scale;pupilR=5*scale;}
+  else if(expr==='cross_extreme'){eyeR=14*scale;pupilR=6*scale;}
+  else if(expr==='tongue_roll'){eyeR=12*scale;}
+  else if(expr==='drool'){eyeR=10*scale;pupilR=5*scale;}
+  else if(expr==='death_stare'){eyeR=3*scale;pupilColor='#ff0000';}
+  else if(expr==='love_burst'){eyeR=19*scale;pupilR=9*scale;pupilColor='#ff2d95';}
+  else if(expr==='money_mouth'){eyeR=16*scale;pupilR=7*scale;pupilColor='#39ff14';}
+  else if(expr==='exploding'){eyeR=18+rand(-4,4)*scale;pupilR=6*scale;pupilColor='#ffd93d';}
   const px=(expr==='crazy'?rand(-3,3):Math.sin(t*3)*3)*scale;
   const py=(expr==='shocked'?-3:expr==='sad'?2:0)*scale;
   ctx2d.fillStyle='#fff';
@@ -393,14 +405,26 @@ function draw2DChar(t){
   else if(expr==='ahegao'){mw=40*scale;mh=20*scale;mrot=Math.sin(t*8)*0.3;}
   else if(expr==='wobbly'){mw=30+Math.sin(t*15)*8*scale;mh=8+Math.cos(t*12)*4*scale;}
   else if(expr==='deadpan'){mw=22*scale;mh=4*scale;}
+  else if(expr==='bug_eyes'){mw=18*scale;mh=12*scale;}
+  else if(expr==='jaw_drop'){mw=24*scale;mh=40*scale;}
+  else if(expr==='scream'){mw=14*scale;mh=44*scale;}
+  else if(expr==='maniacal'){mw=38+rand(-8,8)*scale;mh=14+rand(-4,4)*scale;mrot=rand(-0.3,0.3);}
+  else if(expr==='eye_pop'){mw=26*scale;mh=14*scale;}
+  else if(expr==='cross_extreme'){mw=20*scale;mh=10*scale;mrot=0.1;}
+  else if(expr==='tongue_roll'){mw=40*scale;mh=14*scale;}
+  else if(expr==='drool'){mw=34*scale;mh=20*scale;}
+  else if(expr==='death_stare'){mw=14*scale;mh=6*scale;}
+  else if(expr==='love_burst'){mw=40*scale;mh=12*scale;}
+  else if(expr==='money_mouth'){mw=38*scale;mh=24*scale;}
+  else if(expr==='exploding'){mw=20+rand(-10,10)*scale;mh=14+rand(-6,6)*scale;mrot=rand(-0.4,0.4);}
   else {mw=(0.4+Math.sin(t*6)*0.1)*30*scale;mh=8*scale;}
   ctx2d.save(); ctx2d.translate(cx,headY+16*scale); ctx2d.rotate(mrot);
   ctx2d.beginPath(); ctx2d.ellipse(0,0,mw,mh,0,0,TAU); ctx2d.fill(); ctx2d.stroke();
-  if(expr==='tongue'||expr==='blep'||expr==='ahegao'){ctx2d.fillStyle='#ff4466';ctx2d.beginPath();ctx2d.ellipse(0,mh*0.6,mw*0.5,mh*0.7,0,0,TAU);ctx2d.fill();}
+  if(expr==='tongue'||expr==='blep'||expr==='ahegao'||expr==='tongue_roll'||expr==='maniacal'||expr==='drool'){ctx2d.fillStyle='#ff4466';ctx2d.beginPath();ctx2d.ellipse(0,mh*0.6,mw*0.5,mh*0.7,0,0,TAU);ctx2d.fill();}
   ctx2d.restore();
   // blush
-  if(expr==='happy'||expr==='heart_eyes'||expr==='kiss'||expr==='smirk'||expr==='smug'){
-    ctx2d.fillStyle='rgba(255,102,136,'+(expr==='heart_eyes'?0.7:0.4)+')';
+  if(expr==='happy'||expr==='heart_eyes'||expr==='kiss'||expr==='smirk'||expr==='smug'||expr==='love_burst'||expr==='ahegao'){
+    ctx2d.fillStyle='rgba(255,102,136,'+((expr==='heart_eyes'||expr==='love_burst')?0.8:0.4)+')';
     ctx2d.beginPath(); ctx2d.ellipse(cx-26*scale,headY+6*scale,10*scale,6*scale,0,0,TAU); ctx2d.fill();
     ctx2d.beginPath(); ctx2d.ellipse(cx+26*scale,headY+6*scale,10*scale,6*scale,0,0,TAU); ctx2d.fill();
   }
@@ -714,7 +738,15 @@ const MOVES=['idle','electric_shake','society_shake','kemusan','flower_hands','h
   'spin_fall','knee_slide','belly_flop','swan_dive','swan_pose','flamingo','peacock',
   'pigeon_toed','pigeon_step','flap_hard','wing_flap','fly_away','fly_down',
   'sky_fall','bounce_wall','bonk_head','rubber_neck','double_take','slow_mo','speed_up',
-  'glitch_step','freeze_frame','rewind','fast_forward','pause_play','meme_pose','thirst_trap'
+  'glitch_step','freeze_frame','rewind','fast_forward','pause_play','meme_pose','thirst_trap',
+  // EXTREME / MAXIMUM CHAOS moves
+  'limbs_fly','head_spin_360','body_stretch','body_squash','arms_windmill','tongue_whip',
+  'eye_pop_out','jaw_unhinge','full_body_flail','breakdance_spin','neck_snap_extreme',
+  'eye_cross_extreme','scream_loud','maniacal_laugh','drool_drool','death_glare',
+  'love_overflow','money_rush','head_explode','bug_out','spin_to_win','flail_like_crazy',
+  'body_wobble_extreme','head_detach','eye_pop_zoom','tongue_flick','mouth_gape',
+  'arms_up_crazy','legs_flail','body_bounce_extreme','rubber_bounce','snap_neck',
+  'go_super_saiyan','rage_mode','insane_laugh','eye_twitch_max','face_melt_extreme'
 ];
 const MOVE_NAMES={
   electric_shake:'Electric Shake',society_shake:'Society Shake',kemusan:'Kemusan',flower_hands:'Flower Hands',
@@ -780,7 +812,17 @@ const MOVE_NAMES={
   sky_fall:'SKY FALL',bounce_wall:'Bounce Wall',bonk_head:'BONK',rubber_neck:'Rubber Neck',
   double_take:'Double Take',slow_mo:'SLOW MO',speed_up:'SPEED UP',glitch_step:'Glitch Step',
   freeze_frame:'FREEZE',rewind:'REWIND',fast_forward:'FFWD',pause_play:'PAUSE',
-  meme_pose:'MEME POSE',thirst_trap:'Thirst Trap'
+  meme_pose:'MEME POSE',thirst_trap:'Thirst Trap',
+  limbs_fly:'LIMBS FLY',head_spin_360:'HEAD SPIN',body_stretch:'STRETCH',body_squash:'SQUASH',
+  arms_windmill:'WINDMILL',tongue_whip:'TONGUE WHIP',eye_pop_out:'EYE POP',jaw_unhinge:'JAW DROP',
+  full_body_flail:'FLAIL',breakdance_spin:'B-SPIN',neck_snap_extreme:'NECK SNAP',
+  eye_cross_extreme:'CROSS EYES',scream_loud:'SCREAM',maniacal_laugh:'MANIACAL',drool_drool:'DROOL',
+  death_glare:'DEATH GLARE',love_overflow:'LOVE BURST',money_rush:'MONEY',head_explode:'EXPLODE',
+  bug_out:'BUG EYES',spin_to_win:'SPIN WIN',flail_like_crazy:'FLAIL CRAZY',
+  body_wobble_extreme:'WOBBLE MAX',head_detach:'HEAD OFF',eye_pop_zoom:'ZOOM EYE',tongue_flick:'FLICK',
+  mouth_gape:'GAPE',arms_up_crazy:'ARMS UP',legs_flail:'LEGS FLAIL',body_bounce_extreme:'BOUNCE MAX',
+  rubber_bounce:'RUBBER',snap_neck:'SNAP',go_super_saiyan:'SUPER SAIYAN',rage_mode:'RAGE MODE',
+  insane_laugh:'INSANE LAUGH',eye_twitch_max:'TWITCH MAX',face_melt_extreme:'MELT MAX'
 };
 const MOVE_EMOJI={electric_shake:'⚡',society_shake:'💃',kemusan:'🕺',flower_hands:'🌸',
   headbang:'🤘',hip_shake:'🍑',twitch:'🌀',moonwalk:'🌙',crab_step:'🦀',robot:'🤖',
@@ -828,7 +870,15 @@ const MOVE_EMOJI={electric_shake:'⚡',society_shake:'💃',kemusan:'🕺',flowe
   wing_flap:'🕊️',fly_away:'🕊️',fly_down:'⬇️',sky_fall:'☁️',bounce_wall:'🧱',
   bonk_head:'🔨',rubber_neck:'🦒',double_take:'😳',slow_mo:'🐌',speed_up:'💨',
   glitch_step:'👾',freeze_frame:'🧊',rewind:'⏪',fast_forward:'⏩',pause_play:'⏸️',
-  meme_pose:'📸',thirst_trap:'🥵'
+  meme_pose:'📸',thirst_trap:'🥵',
+  limbs_fly:'🦾',head_spin_360:'🌀',body_stretch:'📏',body_squash:'🫓',arms_windmill:'🌪️',
+  tongue_whip:'👅',eye_pop_out:'👁️',jaw_unhinge:'😮',full_body_flail:'🤪',breakdance_spin:'💫',
+  neck_snap_extreme:'🦴',eye_cross_extreme:'😵',scream_loud:'🗣️',maniacal_laugh:'🤡',drool_drool:'🤤',
+  death_glare:'💀',love_overflow:'😍',money_rush:'💰',head_explode:'🤯',bug_out:'👀',
+  spin_to_win:'🌀',flail_like_crazy:'🤪',body_wobble_extreme:'🫠',head_detach:'😱',
+  eye_pop_zoom:'🔍',tongue_flick:'👅',mouth_gape:'😦',arms_up_crazy:'🙌',legs_flail:'🦵',
+  body_bounce_extreme:'🏀',rubber_bounce:'🟢',snap_neck:'💥',go_super_saiyan:'⚡',
+  rage_mode:'😡',insane_laugh:'😂',eye_twitch_max:'👁️',face_melt_extreme:'🫠'
 };
 
 // expression per move (drives eyes/mouth/brows)
@@ -890,7 +940,17 @@ const MOVE_EXPR={
   sky_fall:'shocked',bounce_wall:'shocked',bonk_head:'x_eyes',rubber_neck:'dizzy',
   double_take:'shocked',slow_mo:'dizzy',speed_up:'crazy',glitch_step:'crazy',
   freeze_frame:'deadpan',rewind:'dizzy',fast_forward:'crazy',pause_play:'deadpan',
-  meme_pose:'smug',thirst_trap:'heart_eyes'
+  meme_pose:'smug',thirst_trap:'heart_eyes',
+  limbs_fly:'crazy',head_spin_360:'dizzy',body_stretch:'shocked',body_squash:'shocked',
+  arms_windmill:'crazy',tongue_whip:'tongue_roll',eye_pop_out:'eye_pop',jaw_unhinge:'jaw_drop',
+  full_body_flail:'maniacal',breakdance_spin:'dizzy',neck_snap_extreme:'x_eyes',
+  eye_cross_extreme:'cross_extreme',scream_loud:'scream',maniacal_laugh:'maniacal',drool_drool:'drool',
+  death_glare:'death_stare',love_overflow:'love_burst',money_rush:'money_mouth',head_explode:'exploding',
+  bug_out:'bug_eyes',spin_to_win:'dizzy',flail_like_crazy:'maniacal',
+  body_wobble_extreme:'wobbly',head_detach:'x_eyes',eye_pop_zoom:'eye_pop',tongue_flick:'tongue_roll',
+  mouth_gape:'jaw_drop',arms_up_crazy:'crazy',legs_flail:'crazy',body_bounce_extreme:'happy',
+  rubber_bounce:'wobbly',snap_neck:'x_eyes',go_super_saiyan:'exploding',rage_mode:'angry',
+  insane_laugh:'maniacal',eye_twitch_max:'wobbly',face_melt_extreme:'ahegao'
 };
 
 function triggerMove(move){
@@ -980,81 +1040,123 @@ window.addEventListener('keydown',e=>{
 function applyExpression(t){
   const expr=MOVE_EXPR[currentMove]||'neutral';
   expression=expr;
-  // eyes scale (0 = closed, 1 = normal, >1 = wide)
-  let es=1, pupilX=0, pupilY=0, pupCol=0x111111, eyeWhiteCol=0xffffff;
-  if(expr==='happy'){es=0.3+Math.abs(Math.sin(t*8))*0.2;}
-  else if(expr==='angry'){es=0.8; pupilX=rand(-0.02,0.02);}
-  else if(expr==='shocked'){es=1.6+Math.sin(t*12)*0.2; pupilY=-0.03;}
-  else if(expr==='dizzy'){es=1.1; pupilX=Math.sin(t*10)*0.04; pupilY=Math.cos(t*10)*0.04;}
-  else if(expr==='x_eyes'){es=0.25; pupCol=0x000000;}
-  else if(expr==='heart_eyes'){es=1.3; pupCol=0xff2d95;}
-  else if(expr==='star_eyes'){es=1.35; pupCol=0xffd93d; pupilX=Math.sin(t*12)*0.01;}
-  else if(expr==='spiral_eyes'){es=1.15; pupilX=Math.sin(t*15)*0.03; pupilY=Math.cos(t*15)*0.03; pupCol=0xa28bff;}
-  else if(expr==='dollar_eyes'){es=1.2; pupCol=0x39ff14;}
-  else if(expr==='kiss'){es=0.5;}
-  else if(expr==='blep'){es=0.95; tongue.visible=true;}
-  else if(expr==='ahegao'){es=1.5; pupilY=-0.04; tongue.visible=true; pupCol=0xffffff;}
-  else if(expr==='wobbly'){es=1.1+Math.sin(t*20)*0.1; pupilX=Math.sin(t*25)*0.04; pupilY=Math.cos(t*18)*0.03;}
-  else if(expr==='smug'){es=0.55; pupilX=0.025;}
-  else if(expr==='tongue'){es=0.9; tongue.visible=true;}
-  else if(expr==='smirk'){es=0.7; pupilX=0.02;}
-  else if(expr==='crazy'){es=1.3+rand(-0.1,0.1); pupilX=rand(-0.05,0.05); pupilY=rand(-0.05,0.05);}
-  else if(expr==='cool'){es=0.5;}
-  else if(expr==='sad'){es=0.6; pupilY=0.03;}
-  else if(expr==='deadpan'){es=0.85; pupilY=0.01;}
+  // eyes scale (0 = closed, 1 = normal, >1 = wide) — PUSHED TO EXTREME
+  let es=1, pupilX=0, pupilY=0, pupCol=0x111111, eyeWhiteCol=0xffffff, eyeXOff=0, eyeYOff=0;
+  if(expr==='happy'){es=0.25+Math.abs(Math.sin(t*8))*0.15;}
+  else if(expr==='angry'){es=0.7; pupilX=rand(-0.04,0.04);}
+  else if(expr==='shocked'){es=2.2+Math.sin(t*12)*0.3; pupilY=-0.06;}
+  else if(expr==='dizzy'){es=1.3; pupilX=Math.sin(t*12)*0.07; pupilY=Math.cos(t*12)*0.07;}
+  else if(expr==='x_eyes'){es=0.2; pupCol=0x000000;}
+  else if(expr==='heart_eyes'){es=1.6; pupCol=0xff2d95;}
+  else if(expr==='star_eyes'){es=1.7; pupCol=0xffd93d; pupilX=Math.sin(t*12)*0.02;}
+  else if(expr==='spiral_eyes'){es=1.4; pupilX=Math.sin(t*18)*0.06; pupilY=Math.cos(t*18)*0.06; pupCol=0xa28bff;}
+  else if(expr==='dollar_eyes'){es=1.5; pupCol=0x39ff14;}
+  else if(expr==='kiss'){es=0.4;}
+  else if(expr==='blep'){es=1.0; tongue.visible=true;}
+  else if(expr==='ahegao'){es=1.8; pupilY=-0.06; tongue.visible=true; pupCol=0xffffff;}
+  else if(expr==='wobbly'){es=1.2+Math.sin(t*20)*0.15; pupilX=Math.sin(t*25)*0.06; pupilY=Math.cos(t*18)*0.05;}
+  else if(expr==='smug'){es=0.45; pupilX=0.03;}
+  else if(expr==='tongue'){es=0.85; tongue.visible=true;}
+  else if(expr==='smirk'){es=0.6; pupilX=0.03;}
+  else if(expr==='crazy'){es=1.6+rand(-0.2,0.2); pupilX=rand(-0.08,0.08); pupilY=rand(-0.08,0.08);}
+  else if(expr==='cool'){es=0.4;}
+  else if(expr==='sad'){es=0.5; pupilY=0.05;}
+  else if(expr==='deadpan'){es=0.8; pupilY=0.01;}
+  // === NEW EXTREME EXPRESSIONS ===
+  else if(expr==='bug_eyes'){es=3.0+Math.sin(t*8)*0.3; pupilY=-0.02; eyeYOff=-0.1;} // eyes BUG out
+  else if(expr==='jaw_drop'){es=1.5; pupilY=-0.08; eyeYOff=-0.05;}
+  else if(expr==='scream'){es=2.5+Math.sin(t*15)*0.4; pupilY=-0.05;}
+  else if(expr==='maniacal'){es=1.8+rand(-0.3,0.3); pupilX=rand(-0.1,0.1); pupilY=rand(-0.06,0.06); tongue.visible=true; pupCol=0xff2222;}
+  else if(expr==='eye_pop'){es=2.8; pupilY=-0.03; eyeXOff=Math.sin(t*10)*0.05; eyeYOff=-0.12+Math.sin(t*8)*0.03;} // one eye pops
+  else if(expr==='cross_extreme'){es=1.4; pupilX=0.08; pupilY=0;} // eyes cross HARD
+  else if(expr==='tongue_roll'){es=1.1; tongue.visible=true;}
+  else if(expr==='drool'){es=0.9; tongue.visible=true; pupilY=0.05;}
+  else if(expr==='death_stare'){es=0.15; pupCol=0xff0000;}
+  else if(expr==='love_burst'){es=2.0; pupCol=0xff2d95; pupilX=Math.sin(t*10)*0.03;}
+  else if(expr==='money_mouth'){es=1.7; pupCol=0x39ff14;}
+  else if(expr==='exploding'){es=2.5+rand(-0.5,0.5); pupilX=rand(-0.1,0.1); pupilY=rand(-0.08,0.08); pupCol=0xffd93d;}
   else {es=1;} // neutral
-  if(expr!=='tongue'&&expr!=='blep'&&expr!=='ahegao') tongue.visible=false;
-  const eyePop=meltdown?1.5+Math.sin(t*10)*0.3:1;
-  leftEye.scale.setScalar(es*eyePop); rightEye.scale.setScalar(es*eyePop);
+  const showTongue = expr==='tongue'||expr==='blep'||expr==='ahegao'||expr==='maniacal'||expr==='tongue_roll'||expr==='drool';
+  if(tongue) tongue.visible=showTongue;
+  const eyePop=meltdown?1.8+Math.sin(t*10)*0.4:1;
+  if(leftEye){leftEye.scale.setScalar(es*eyePop); leftEye.position.x=(-(charConfig?charConfig.eyeDist:0.22))+eyeXOff; leftEye.position.y=((charConfig?charConfig.headSize*0.12:0.12))+eyeYOff;}
+  if(rightEye){rightEye.scale.setScalar(es*eyePop); rightEye.position.x=((charConfig?charConfig.eyeDist:0.22))-eyeXOff; rightEye.position.y=((charConfig?charConfig.headSize*0.12:0.12))+eyeYOff;}
   if(leftPupil){leftPupil.position.x=pupilX; leftPupil.position.y=pupilY;}
   if(rightPupil){rightPupil.position.x=pupilX; rightPupil.position.y=pupilY;}
   if(pupilMat){pupilMat.color.setHex(pupCol);}
   if(eyeWhiteMat){eyeWhiteMat.color.setHex(eyeWhiteCol);}
-  // mouth shape
-  let msx=1, msy=1, mrot=0;
-  if(expr==='happy'){msx=1.2; msy=0.6;}
-  else if(expr==='angry'){msx=0.8; msy=1.2;}
-  else if(expr==='shocked'){msx=0.5; msy=1.8;}
-  else if(expr==='dizzy'){msx=1+Math.sin(t*10)*0.3; msy=1; mrot=Math.sin(t*8)*0.3;}
-  else if(expr==='x_eyes'){msx=0.5; msy=0.5;}
-  else if(expr==='heart_eyes'){msx=1.1; msy=0.9;}
-  else if(expr==='star_eyes'){msx=1.2; msy=0.7;}
-  else if(expr==='dollar_eyes'){msx=1.1; msy=0.8;}
-  else if(expr==='kiss'){msx=0.4; msy=0.4;}
-  else if(expr==='blep'){msx=1.0; msy=0.6;}
-  else if(expr==='ahegao'){msx=1.4; msy=1.6; mrot=Math.sin(t*8)*0.3;}
-  else if(expr==='wobbly'){msx=1+Math.sin(t*15)*0.3; msy=1+Math.cos(t*12)*0.2;}
-  else if(expr==='smug'){msx=0.85; msy=0.6; mrot=0.15;}
-  else if(expr==='tongue'){msx=1.3; msy=0.8;}
-  else if(expr==='smirk'){msx=0.9; msy=0.7; mrot=0.2;}
-  else if(expr==='sad'){msx=1; msy=0.7; mrot=Math.PI;}
-  else if(expr==='deadpan'){msx=0.7; msy=0.5;}
-  else if(expr==='crazy'){msx=1+rand(-0.3,0.3); msy=1+rand(-0.2,0.2);}
-  else {msx=1+Math.sin(t*6)*0.3; msy=1;}
+  // mouth shape — PUSHED TO EXTREME
+  let msx=1, msy=1, mrot=0, mouthY=0;
+  if(expr==='happy'){msx=1.4; msy=0.5;}
+  else if(expr==='angry'){msx=0.7; msy=1.5;}
+  else if(expr==='shocked'){msx=0.4; msy=2.5;}
+  else if(expr==='dizzy'){msx=1+Math.sin(t*10)*0.4; msy=1; mrot=Math.sin(t*8)*0.4;}
+  else if(expr==='x_eyes'){msx=0.4; msy=0.4;}
+  else if(expr==='heart_eyes'){msx=1.3; msy=1.0;}
+  else if(expr==='star_eyes'){msx=1.4; msy=0.7;}
+  else if(expr==='dollar_eyes'){msx=1.3; msy=0.9;}
+  else if(expr==='kiss'){msx=0.35; msy=0.35;}
+  else if(expr==='blep'){msx=1.1; msy=0.6;}
+  else if(expr==='ahegao'){msx=1.6; msy=2.0; mrot=Math.sin(t*8)*0.4;}
+  else if(expr==='wobbly'){msx=1+Math.sin(t*15)*0.4; msy=1+Math.cos(t*12)*0.3;}
+  else if(expr==='smug'){msx=0.8; msy=0.55; mrot=0.2;}
+  else if(expr==='tongue'){msx=1.5; msy=0.8;}
+  else if(expr==='smirk'){msx=0.85; msy=0.6; mrot=0.25;}
+  else if(expr==='sad'){msx=1.1; msy=0.6; mrot=Math.PI;}
+  else if(expr==='deadpan'){msx=0.6; msy=0.4;}
+  else if(expr==='crazy'){msx=1+rand(-0.5,0.5); msy=1+rand(-0.4,0.4); mrot=rand(-0.5,0.5);}
+  // === NEW EXTREME EXPRESSIONS ===
+  else if(expr==='bug_eyes'){msx=0.6; msy=1.0;}
+  else if(expr==='jaw_drop'){msx=0.8; msy=4.0; mouthY=-0.15;} // jaw DROPS way down
+  else if(expr==='scream'){msx=0.5; msy=3.5; mrot=rand(-0.1,0.1);} // huge O scream
+  else if(expr==='maniacal'){msx=1.5+rand(-0.3,0.3); msy=1.2+rand(-0.2,0.2); mrot=rand(-0.4,0.4);}
+  else if(expr==='eye_pop'){msx=1.0; msy=0.7;}
+  else if(expr==='cross_extreme'){msx=0.9; msy=0.5; mrot=0.1;}
+  else if(expr==='tongue_roll'){msx=1.6; msy=1.0;}
+  else if(expr==='drool'){msx=1.4; msy=1.2; mouthY=0.05;}
+  else if(expr==='death_stare'){msx=0.5; msy=0.3;}
+  else if(expr==='love_burst'){msx=1.5; msy=0.7;}
+  else if(expr==='money_mouth'){msx=1.6; msy=1.4;}
+  else if(expr==='exploding'){msx=1+rand(-0.6,0.6); msy=1+rand(-0.5,0.5); mrot=rand(-0.6,0.6);}
+  else {msx=1+Math.sin(t*6)*0.4; msy=1;}
   mouth.scale.set(msx,msy,1);
   mouth.rotation.z=mrot;
-  // eyebrows
+  mouth.position.y=-(charConfig?charConfig.headSize*0.22:0.22)+mouthY;
+  // eyebrows — EXTREME
   if(leftBrow){
     let bl=0, br=0, by=0;
-    if(expr==='angry'){bl=0.3; br=-0.3;}
-    else if(expr==='shocked'){by=0.05;}
-    else if(expr==='sad'){bl=-0.2; br=0.2;}
-    else if(expr==='happy'){by=-0.02;}
-    else if(expr==='dizzy'){bl=Math.sin(t*8)*0.3; br=-Math.sin(t*8)*0.3;}
-    else if(expr==='crazy'){bl=rand(-0.5,0.5); br=rand(-0.5,0.5);}
-    else if(expr==='x_eyes'){bl=0.5; br=-0.5; by=0.02;}
-    else if(expr==='heart_eyes'||expr==='star_eyes'||expr==='dollar_eyes'){by=-0.03; bl=0.1; br=-0.1;}
-    else if(expr==='ahegao'){bl=-0.3; br=0.3; by=0.04;}
-    else if(expr==='smug'){bl=-0.15; br=-0.15;}
-    else if(expr==='wobbly'){bl=Math.sin(t*15)*0.4; br=Math.cos(t*15)*0.4;}
+    if(expr==='angry'||expr==='maniacal'){bl=0.5; br=-0.5;}
+    else if(expr==='shocked'||expr==='bug_eyes'||expr==='jaw_drop'||expr==='scream'){by=0.08; bl=0.2; br=-0.2;}
+    else if(expr==='sad'||expr==='drool'){bl=-0.25; br=0.25;}
+    else if(expr==='happy'){by=-0.03;}
+    else if(expr==='dizzy'){bl=Math.sin(t*8)*0.4; br=-Math.sin(t*8)*0.4;}
+    else if(expr==='crazy'||expr==='exploding'){bl=rand(-0.7,0.7); br=rand(-0.7,0.7);}
+    else if(expr==='x_eyes'||expr==='death_stare'){bl=0.6; br=-0.6; by=0.03;}
+    else if(expr==='heart_eyes'||expr==='star_eyes'||expr==='dollar_eyes'||expr==='love_burst'||expr==='money_mouth'){by=-0.04; bl=0.15; br=-0.15;}
+    else if(expr==='ahegao'){bl=-0.4; br=0.4; by=0.06;}
+    else if(expr==='smug'){bl=-0.2; br=-0.2;}
+    else if(expr==='wobbly'){bl=Math.sin(t*15)*0.5; br=Math.cos(t*15)*0.5;}
+    else if(expr==='eye_pop'){bl=0.3; br=-0.1; by=-0.02;}
+    else if(expr==='cross_extreme'){bl=-0.1; br=-0.1; by=0.02;}
     leftBrow.rotation.z=bl; rightBrow.rotation.z=br;
     leftBrow.position.y=cfg0(by); rightBrow.position.y=cfg0(by);
   }
+  // tongue whip animation for tongue expressions
+  if(tongue && tongue.visible){
+    if(expr==='tongue_roll'||expr==='maniacal'){
+      tongue.position.x=Math.sin(t*15)*0.08; tongue.position.y=-0.05+Math.sin(t*12)*0.04;
+      tongue.rotation.z=Math.sin(t*10)*0.8; tongue.scale.set(1, 0.5+Math.abs(Math.sin(t*8))*0.6, 1);
+    } else if(expr==='ahegao'||expr==='drool'){
+      tongue.position.y=0.08; tongue.rotation.z=Math.sin(t*6)*0.3; tongue.scale.set(1,0.9,1);
+    } else {
+      tongue.position.set(0,-0.05,(charConfig?charConfig.headSize*0.05:0.05)); tongue.rotation.z=0; tongue.scale.set(1,0.5,1);
+    }
+  }
   // blush intensifies for certain expressions
   if(leftBlush){
-    const blushOn=(expr==='happy'||expr==='kiss'||expr==='smirk'||expr==='smug'||expr==='heart_eyes');
-    const op=blushOn?0.7:0.25;
-    leftBlush.material.opacity=op+(expr==='heart_eyes'?0.3:0);
+    const blushOn=(expr==='happy'||expr==='kiss'||expr==='smirk'||expr==='smug'||expr==='heart_eyes'||expr==='love_burst'||expr==='ahegao');
+    const op=blushOn?0.8:0.2;
+    leftBlush.material.opacity=op+(expr==='heart_eyes'||expr==='love_burst'?0.2:0);
     rightBlush.material.opacity=leftBlush.material.opacity;
   }
 }
@@ -1235,6 +1337,33 @@ function animateChar(t, dt){
   else if(m==='go_mode'){armL=Math.sin(t*15)*1.2;armR=Math.cos(t*15)*1.2;legL=Math.sin(t*15)*0.6;legR=Math.cos(t*15)*0.6;headRot=Math.sin(t*15)*0.3;bob+=Math.abs(Math.sin(t*15))*0.2;}
   else if(m==='insane'){armL=rand(-2,2);armR=rand(-2,2);legL=rand(-1.2,1.2);legR=rand(-1.2,1.2);headRot=rand(-1,1);bodyRot=rand(-0.5,0.5);scaleY=1+rand(-0.3,0.3);}
   else if(m==='unhinged'){armL=rand(-2.5,2.5);armR=rand(-2.5,2.5);legL=rand(-1.5,1.5);legR=rand(-1.5,1.5);headRot=rand(-1.2,1.2);bodyRot=rand(-0.6,0.6);scaleY=1+rand(-0.4,0.4);scaleX=1+rand(-0.3,0.3);}
+  // === EXTREME / MAXIMUM CHAOS moves ===
+  else if(m==='head_spin_360'||m==='breakdance_spin'||m==='spin_to_win'){headRot=t*8; bodyRot=Math.sin(t*4)*0.3; armL=2; armR=-2;}
+  else if(m==='body_stretch'){scaleY=2.5+Math.sin(t*6)*0.3; scaleX=0.6; headY=-0.3; armL=-0.5; armR=-0.5;}
+  else if(m==='body_squash'){scaleY=0.4; scaleX=1.8; bob=-0.3; armL=0.8; armR=0.8;}
+  else if(m==='arms_windmill'){armL=t*10; armR=-t*10; legL=Math.sin(t*8)*0.6; legR=-legL; bodyRot=Math.sin(t*4)*0.15;}
+  else if(m==='tongue_whip'){headRot=Math.sin(t*15)*0.4; armL=Math.sin(t*10)*1.2; armR=Math.cos(t*10)*1.2;}
+  else if(m==='eye_pop_out'||m==='eye_pop_zoom'){headRot=Math.sin(t*6)*0.3; scaleY=1+Math.sin(t*8)*0.1; armL=-0.3; armR=-0.3;}
+  else if(m==='jaw_unhinge'||m==='mouth_gape'){headRot=Math.sin(t*5)*0.2; scaleY=1.1; armL=0.5; armR=0.5;}
+  else if(m==='full_body_flail'||m==='flail_like_crazy'){armL=rand(-3,3);armR=rand(-3,3);legL=rand(-2,2);legR=rand(-2,2);headRot=rand(-1.5,1.5);bodyRot=rand(-0.8,0.8);scaleY=1+rand(-0.5,0.5);scaleX=1+rand(-0.4,0.4);bodyX=rand(-0.1,0.1);}
+  else if(m==='limbs_fly'){armL=rand(-3.5,3.5);armR=rand(-3.5,3.5);legL=rand(-2.5,2.5);legR=rand(-2.5,2.5);headRot=rand(-1,1);scaleY=1+rand(-0.3,0.3);}
+  else if(m==='neck_snap_extreme'||m==='snap_neck'){headRot=Math.sin(t*20)*1.2; bob+=Math.abs(Math.sin(t*20))*0.15; armL=rand(-1,1); armR=rand(-1,1);}
+  else if(m==='scream_loud'){scaleY=1.1+Math.abs(Math.sin(t*12))*0.2; headRot=Math.sin(t*10)*0.3; armL=1.5+Math.sin(t*10)*0.5; armR=-1.5-Math.sin(t*10)*0.5;}
+  else if(m==='maniacal_laugh'||m==='insane_laugh'){headRot=Math.sin(t*15)*0.5; bob+=Math.abs(Math.sin(t*12))*0.2; armL=Math.sin(t*15)*1.5; armR=Math.cos(t*15)*1.5; bodyRot=Math.sin(t*8)*0.3;}
+  else if(m==='drool_drool'){headRot=-0.3+Math.sin(t*4)*0.1; scaleY=0.95; armL=-0.3; armR=-0.3; legL=0.1; legR=0.1;}
+  else if(m==='death_glare'){headRot=0; scaleY=1.05; armL=-0.2; armR=-0.2; bodyRot=0;}
+  else if(m==='love_overflow'){scaleY=1.1+Math.sin(t*6)*0.1; armL=0.8; armR=0.8; headRot=Math.sin(t*5)*0.15; bodyRot=Math.sin(t*4)*0.1;}
+  else if(m==='money_rush'){armL=1; armR=-1; headRot=Math.sin(t*5)*0.2; scaleY=1.05;}
+  else if(m==='head_explode'||m==='go_super_saiyan'){scaleY=1+Math.sin(t*20)*0.3; scaleX=1+Math.cos(t*20)*0.3; headRot=rand(-0.5,0.5); armL=rand(-2,2); armR=rand(-2,2); bodyRot=rand(-0.3,0.3);}
+  else if(m==='bug_out'){scaleY=1.05; headRot=Math.sin(t*6)*0.2; armL=0.5; armR=0.5;}
+  else if(m==='body_wobble_extreme'||m==='eye_twitch_max'){scaleY=1+Math.sin(t*20)*0.3; scaleX=1+Math.cos(t*18)*0.25; headRot=Math.sin(t*25)*0.5; bodyRot=Math.sin(t*15)*0.4; armL=Math.sin(t*20)*1.5; armR=Math.cos(t*20)*1.5;}
+  else if(m==='head_detach'){headY=-0.3+Math.sin(t*8)*0.15; headRot=Math.sin(t*6)*0.8; scaleY=0.8; armL=-0.5; armR=0.5;}
+  else if(m==='tongue_flick'){headRot=Math.sin(t*18)*0.4; armL=Math.sin(t*12)*1; armR=Math.cos(t*12)*1;}
+  else if(m==='arms_up_crazy'){armL=2.5+Math.sin(t*15)*0.5; armR=2.5+Math.cos(t*15)*0.5; headRot=Math.sin(t*10)*0.4; bob+=Math.abs(Math.sin(t*10))*0.2;}
+  else if(m==='legs_flail'){legL=rand(-2.5,2.5); legR=rand(-2.5,2.5); armL=0.5; armR=-0.5; bodyRot=Math.sin(t*8)*0.3;}
+  else if(m==='body_bounce_extreme'||m==='rubber_bounce'){bob+=Math.abs(Math.sin(t*10))*0.5; scaleY=0.7+Math.abs(Math.sin(t*10))*0.6; scaleX=1.3-Math.abs(Math.sin(t*10))*0.4; armL=Math.sin(t*10)*1.2; armR=Math.cos(t*10)*1.2;}
+  else if(m==='rage_mode'){armL=-2; armR=-2; headRot=0.3+Math.sin(t*12)*0.2; scaleY=1.2; bodyRot=Math.sin(t*8)*0.2;}
+  else if(m==='face_melt_extreme'){scaleY=0.5+Math.sin(t*4)*0.2; scaleX=1.3; headRot=Math.sin(t*3)*0.3; armL=-0.3; armR=-0.3;}
   else if(m==='idle'){
     armL=Math.sin(t*3)*0.2;armR=-armL;headRot=Math.sin(t*2)*0.08;
   } else {
@@ -1251,27 +1380,35 @@ function animateChar(t, dt){
     if(h%5===0) bodyX=Math.sin(t*f2)*0.08;
   }
 
-  // apply transforms
+  // apply transforms — EXTREME
   charGroup.position.y=bob;
   charGroup.position.x=bodyX;
-  charGroup.rotation.z=bodyRot*0.3;
+  charGroup.rotation.z=bodyRot*0.45;
   body.scale.set(scaleX, scaleY, scaleX);
-  head.rotation.z=headRot*0.5;
+  head.rotation.z=headRot*0.75;
+  head.rotation.x=headRot*0.15;
   head.position.y=(charConfig?1.4*charConfig.bodyLen:1.4)+headY;
   applyExpression(t);
 
-  // limbs (rubber hose wobble)
+  // limbs (rubber hose wobble) — EXTREME amplitude
+  const EXTREME = (meltdown || expr==='crazy'||expr==='maniacal'||expr==='exploding'||m==='full_body_flail'||m==='limbs_fly') ? 1.0 : 0;
   limbs.forEach(l=>{
     const ud=l.userData;
     const sw=l===leftArm?armL:l===rightArm?armR:l===leftLeg?legL:legR;
-    l.rotation.z=sw*0.8;
-    ud.upper.rotation.x=Math.sin(t*5+ud.phase)*0.2;
-    ud.lower.rotation.x=Math.sin(t*7+ud.phase)*0.3+sw*0.3;
+    l.rotation.z=sw*(1.3+EXTREME*0.6);
+    ud.upper.rotation.x=Math.sin(t*5+ud.phase)*(0.3+EXTREME*0.3);
+    ud.lower.rotation.x=Math.sin(t*7+ud.phase)*(0.4+EXTREME*0.4)+sw*(0.4+EXTREME*0.3);
+    ud.upper.rotation.z=Math.sin(t*6+ud.phase)*0.15;
     if(ud.knotT!==undefined && ud.knotT!==null){
       ud.knotT+=dt;
-      l.rotation.z+=Math.sin(t*20)*1.5;
-      ud.upper.rotation.z=Math.sin(t*25)*2;
-      ud.lower.rotation.z=Math.cos(t*30)*2;
+      l.rotation.z+=Math.sin(t*20)*2.0;
+      ud.upper.rotation.z=Math.sin(t*25)*2.5;
+      ud.lower.rotation.z=Math.cos(t*30)*2.5;
+    }
+    // limbs fly off effect for extreme moves
+    if(EXTREME){
+      l.position.x += Math.sin(t*15+ud.phase)*0.03;
+      l.position.y += Math.cos(t*12+ud.phase)*0.02;
     }
   });
 }
