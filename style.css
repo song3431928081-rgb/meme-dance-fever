@@ -149,6 +149,46 @@ html, body {
   text-shadow:0 1px 2px rgba(0,0,0,.8);
 }
 
+/* ===== Vibe Bar (3D mode) ===== */
+.vibe-bar {
+  margin-top:8px; height:14px; border-radius:7px;
+  background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.2);
+  position:relative; overflow:hidden;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.5);
+  width:180px; margin-left:auto; margin-right:auto;
+}
+.vibe-fill {
+  height:100%; width:0%;
+  background:linear-gradient(90deg, #39ff14, #ffd93d 50%, #ff2d95);
+  border-radius:7px; transition:width .3s ease;
+  box-shadow:0 0 8px rgba(255,45,149,.6);
+}
+.vibe-label {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:bold; letter-spacing:1px; color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+}
+.blob-count {
+  margin-top:8px; text-align:center; font-size:12px; letter-spacing:2px;
+  color:#39ff14; text-shadow:0 0 8px #39ff14;
+}
+
+/* ===== Meme Storm Overlay ===== */
+#meme-storm {
+  position:fixed; inset:0; z-index:200; pointer-events:none;
+  background:rgba(0,0,0,.0);
+  overflow:hidden;
+}
+#meme-storm .meme-emoji {
+  position:absolute; font-size:48px; opacity:0;
+  animation:memeFly 1.2s ease-out forwards;
+}
+@keyframes memeFly {
+  0% { opacity:0; transform:scale(0.3) rotate(0deg); }
+  30% { opacity:1; transform:scale(1.2) rotate(180deg); }
+  100% { opacity:0; transform:scale(2) rotate(720deg); }
+}
+
 .back-btn {
   position:absolute; top:14px; right:16px; z-index:30;
   width:36px; height:36px; border-radius:50%;
