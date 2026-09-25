@@ -489,7 +489,7 @@ function genChar(){
     eyeSize: rand(0.12,0.2),
     eyeDist: rand(0.15,0.32),
     mouthW: rand(0.3,0.6),
-    limbLen: rand(0.8,1.4),
+    limbLen: rand(1.8,3.2),
     name: pick(NAMES),
     phrase: pick(CATCHPHRASES),
   };
@@ -673,17 +673,21 @@ function buildCharacter(cfg){
   // LIMBS — rubber hose (thin cylinders)
   function makeLimb(side, isArm){
     const g=new THREE.Group();
-    const len=cfg.limbLen*(isArm?1:1.1);
-    const upper=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,len*0.5,6),skinMat);
+    const len=cfg.limbLen*(isArm?1:1.15);
+    // ultra-thin rubber-hose cylinders
+    const upper=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,len*0.5,6),skinMat);
     upper.position.y=-len*0.25;
-    const lower=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,len*0.5,6),skinMat);
+    const lower=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,len*0.5,6),skinMat);
     lower.position.y=-len*0.75;
-    // hand/foot
+    // bigger cartoon hands/feet
     const endMat=isArm?skinMat:new THREE.MeshStandardMaterial({color:0x222222});
-    const end=new THREE.Mesh(new THREE.SphereGeometry(isArm?0.1:0.12,6,6),endMat);
+    const end=new THREE.Mesh(new THREE.SphereGeometry(isArm?0.16:0.18,8,8),endMat);
     end.position.y=-len;
-    g.add(upper,lower,end);
-    g.userData={upper,lower,end,side,isArm,len,phase:Math.random()*TAU};
+    // joint sphere for articulation visibility
+    const joint=new THREE.Mesh(new THREE.SphereGeometry(0.05,6,6),skinMat);
+    joint.position.y=-len*0.5;
+    g.add(upper,joint,lower,end);
+    g.userData={upper,lower,end,joint,side,isArm,len,phase:Math.random()*TAU};
     return g;
   }
   leftArm=makeLimb(-1,true); leftArm.position.set(-0.6*cfg.bodyLen,0.6,0); leftArm.userData.baseX=leftArm.position.x; leftArm.userData.baseY=leftArm.position.y;
@@ -1063,18 +1067,18 @@ function applyExpression(t){
   else if(expr==='sad'){es=0.5; pupilY=0.05;}
   else if(expr==='deadpan'){es=0.8; pupilY=0.01;}
   // === NEW EXTREME EXPRESSIONS ===
-  else if(expr==='bug_eyes'){es=3.0+Math.sin(t*8)*0.3; pupilY=-0.02; eyeYOff=-0.1;} // eyes BUG out
-  else if(expr==='jaw_drop'){es=1.5; pupilY=-0.08; eyeYOff=-0.05;}
-  else if(expr==='scream'){es=2.5+Math.sin(t*15)*0.4; pupilY=-0.05;}
-  else if(expr==='maniacal'){es=1.8+rand(-0.3,0.3); pupilX=rand(-0.1,0.1); pupilY=rand(-0.06,0.06); tongue.visible=true; pupCol=0xff2222;}
-  else if(expr==='eye_pop'){es=2.8; pupilY=-0.03; eyeXOff=Math.sin(t*10)*0.05; eyeYOff=-0.12+Math.sin(t*8)*0.03;} // one eye pops
-  else if(expr==='cross_extreme'){es=1.4; pupilX=0.08; pupilY=0;} // eyes cross HARD
-  else if(expr==='tongue_roll'){es=1.1; tongue.visible=true;}
-  else if(expr==='drool'){es=0.9; tongue.visible=true; pupilY=0.05;}
-  else if(expr==='death_stare'){es=0.15; pupCol=0xff0000;}
-  else if(expr==='love_burst'){es=2.0; pupCol=0xff2d95; pupilX=Math.sin(t*10)*0.03;}
-  else if(expr==='money_mouth'){es=1.7; pupCol=0x39ff14;}
-  else if(expr==='exploding'){es=2.5+rand(-0.5,0.5); pupilX=rand(-0.1,0.1); pupilY=rand(-0.08,0.08); pupCol=0xffd93d;}
+  else if(expr==='bug_eyes'){es=3.6+Math.sin(t*8)*0.4; pupilY=-0.03; eyeYOff=-0.13;} // eyes BUG out
+  else if(expr==='jaw_drop'){es=1.7; pupilY=-0.1; eyeYOff=-0.07;}
+  else if(expr==='scream'){es=3.0+Math.sin(t*15)*0.5; pupilY=-0.06;}
+  else if(expr==='maniacal'){es=2.0+rand(-0.4,0.4); pupilX=rand(-0.13,0.13); pupilY=rand(-0.08,0.08); tongue.visible=true; pupCol=0xff2222;}
+  else if(expr==='eye_pop'){es=3.2; pupilY=-0.04; eyeXOff=Math.sin(t*10)*0.07; eyeYOff=-0.15+Math.sin(t*8)*0.04;} // one eye pops
+  else if(expr==='cross_extreme'){es=1.5; pupilX=0.1; pupilY=0;} // eyes cross HARD
+  else if(expr==='tongue_roll'){es=1.2; tongue.visible=true;}
+  else if(expr==='drool'){es=1.0; tongue.visible=true; pupilY=0.06;}
+  else if(expr==='death_stare'){es=0.12; pupCol=0xff0000;}
+  else if(expr==='love_burst'){es=2.3; pupCol=0xff2d95; pupilX=Math.sin(t*10)*0.04;}
+  else if(expr==='money_mouth'){es=1.9; pupCol=0x39ff14;}
+  else if(expr==='exploding'){es=3.0+rand(-0.6,0.6); pupilX=rand(-0.13,0.13); pupilY=rand(-0.1,0.1); pupCol=0xffd93d;}
   else {es=1;} // neutral
   const showTongue = expr==='tongue'||expr==='blep'||expr==='ahegao'||expr==='maniacal'||expr==='tongue_roll'||expr==='drool';
   if(tongue) tongue.visible=showTongue;
@@ -1107,17 +1111,17 @@ function applyExpression(t){
   else if(expr==='crazy'){msx=1+rand(-0.5,0.5); msy=1+rand(-0.4,0.4); mrot=rand(-0.5,0.5);}
   // === NEW EXTREME EXPRESSIONS ===
   else if(expr==='bug_eyes'){msx=0.6; msy=1.0;}
-  else if(expr==='jaw_drop'){msx=0.8; msy=4.0; mouthY=-0.15;} // jaw DROPS way down
-  else if(expr==='scream'){msx=0.5; msy=3.5; mrot=rand(-0.1,0.1);} // huge O scream
-  else if(expr==='maniacal'){msx=1.5+rand(-0.3,0.3); msy=1.2+rand(-0.2,0.2); mrot=rand(-0.4,0.4);}
-  else if(expr==='eye_pop'){msx=1.0; msy=0.7;}
-  else if(expr==='cross_extreme'){msx=0.9; msy=0.5; mrot=0.1;}
-  else if(expr==='tongue_roll'){msx=1.6; msy=1.0;}
-  else if(expr==='drool'){msx=1.4; msy=1.2; mouthY=0.05;}
-  else if(expr==='death_stare'){msx=0.5; msy=0.3;}
-  else if(expr==='love_burst'){msx=1.5; msy=0.7;}
-  else if(expr==='money_mouth'){msx=1.6; msy=1.4;}
-  else if(expr==='exploding'){msx=1+rand(-0.6,0.6); msy=1+rand(-0.5,0.5); mrot=rand(-0.6,0.6);}
+  else if(expr==='jaw_drop'){msx=0.7; msy=5.0; mouthY=-0.2;} // jaw DROPS way down
+  else if(expr==='scream'){msx=0.4; msy=4.5; mrot=rand(-0.15,0.15);} // huge O scream
+  else if(expr==='maniacal'){msx=1.7+rand(-0.4,0.4); msy=1.4+rand(-0.3,0.3); mrot=rand(-0.5,0.5);}
+  else if(expr==='eye_pop'){msx=1.1; msy=0.8;}
+  else if(expr==='cross_extreme'){msx=1.0; msy=0.5; mrot=0.1;}
+  else if(expr==='tongue_roll'){msx=1.8; msy=1.1;}
+  else if(expr==='drool'){msx=1.5; msy=1.3; mouthY=0.06;}
+  else if(expr==='death_stare'){msx=0.4; msy=0.25;}
+  else if(expr==='love_burst'){msx=1.6; msy=0.8;}
+  else if(expr==='money_mouth'){msx=1.7; msy=1.6;}
+  else if(expr==='exploding'){msx=1+rand(-0.7,0.7); msy=1+rand(-0.6,0.6); mrot=rand(-0.7,0.7);}
   else {msx=1+Math.sin(t*6)*0.4; msy=1;}
   mouth.scale.set(msx,msy,1);
   mouth.rotation.z=mrot;
@@ -1390,25 +1394,34 @@ function animateChar(t, dt){
   head.position.y=(charConfig?1.4*charConfig.bodyLen:1.4)+headY;
   applyExpression(t);
 
-  // limbs (rubber hose wobble) — EXTREME amplitude
+  // limbs (rubber hose wobble) — MAXIMUM flail amplitude
   const curExpr=MOVE_EXPR[currentMove]||'neutral';
   const EXTREME = (meltdown || curExpr==='crazy'||curExpr==='maniacal'||curExpr==='exploding'||m==='full_body_flail'||m==='limbs_fly'||m==='flail_like_crazy') ? 1.0 : 0;
+  const FLOPPY = 0.4; // base overshoot/floppiness for all moves
   limbs.forEach(l=>{
     const ud=l.userData;
     const sw=l===leftArm?armL:l===rightArm?armR:l===leftLeg?legL:legR;
-    l.rotation.z=sw*(1.3+EXTREME*0.6);
-    ud.upper.rotation.x=Math.sin(t*5+ud.phase)*(0.3+EXTREME*0.3);
-    ud.lower.rotation.x=Math.sin(t*7+ud.phase)*(0.4+EXTREME*0.4)+sw*(0.4+EXTREME*0.3);
-    ud.upper.rotation.z=Math.sin(t*6+ud.phase)*0.15;
+    // whole-limb swing — huge range, plus floppy overshoot wobble
+    l.rotation.z=sw*(1.8+EXTREME*0.8)+Math.sin(t*9+ud.phase)*FLOPPY*(0.5+EXTREME*0.5);
+    // upper arm/leg bend
+    ud.upper.rotation.x=Math.sin(t*5+ud.phase)*(0.5+EXTREME*0.5)+sw*0.2;
+    ud.upper.rotation.z=Math.sin(t*6+ud.phase)*(0.25+EXTREME*0.3);
+    // forearm/shin bend — exaggerated hinge
+    ud.lower.rotation.x=Math.sin(t*7+ud.phase)*(0.7+EXTREME*0.6)+sw*(0.6+EXTREME*0.4);
+    ud.lower.rotation.z=Math.cos(t*8+ud.phase)*(0.2+EXTREME*0.3);
     if(ud.knotT!==undefined && ud.knotT!==null){
       ud.knotT+=dt;
-      l.rotation.z+=Math.sin(t*20)*2.0;
-      ud.upper.rotation.z=Math.sin(t*25)*2.5;
-      ud.lower.rotation.z=Math.cos(t*30)*2.5;
+      l.rotation.z+=Math.sin(t*20)*2.5;
+      ud.upper.rotation.z=Math.sin(t*25)*3.0;
+      ud.lower.rotation.z=Math.cos(t*30)*3.0;
+      ud.upper.rotation.x=Math.sin(t*22)*1.5;
+      ud.lower.rotation.x=Math.cos(t*28)*1.5;
     }
     // reset to base position, then apply extreme "fly off" offset
-    l.position.x=ud.baseX+(EXTREME?Math.sin(t*15+ud.phase)*0.05:0);
-    l.position.y=ud.baseY+(EXTREME?Math.cos(t*12+ud.phase)*0.04:0);
+    l.position.x=ud.baseX+(EXTREME?Math.sin(t*15+ud.phase)*0.08:0);
+    l.position.y=ud.baseY+(EXTREME?Math.cos(t*12+ud.phase)*0.06:0);
+    // hand/foot jiggle
+    if(ud.end) ud.end.rotation.z=Math.sin(t*12+ud.phase)*0.5;
   });
 }
 
