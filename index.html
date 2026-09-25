@@ -467,8 +467,8 @@ function withOutline(mesh, offset=0.06){
 // ============================================================
 //  CHARACTER — 90s Western cartoon (original, no copyright)
 // ============================================================
-const HEAD_TYPES=['sphere','box','tv','bread','toilet','triangle','egg'];
-const BODY_TYPES=['tall','round','square','pear'];
+const HEAD_TYPES=['sphere','oval','egg','blob','pear','melon','onion'];
+const BODY_TYPES=['tall','round','pear','slim','chubby'];
 const CLOTHES=['labcoat','uniform','underwear','suit','pajama','naked'];
 const SKIN_COLORS=[0xffd8a8,0xffcc88,0xf4c28a,0xffe0b3,0xd4a574,0xffb347,0x6b3fa0,0x8b5a2b];
 const CLOTH_COLORS={
@@ -506,16 +506,39 @@ function buildCharacter(cfg){
   const clothMat=new THREE.MeshStandardMaterial({color:clothCol, roughness:0.7});
   const blackMat=new THREE.MeshStandardMaterial({color:0x111111, roughness:0.5});
 
-  // BODY (low-poly for mobile)
-  let bodyGeo;
-  if(cfg.bodyType==='round') bodyGeo=new THREE.SphereGeometry(0.7*cfg.bodyLen,10,8);
-  else if(cfg.bodyType==='square') bodyGeo=new THREE.BoxGeometry(1.1*cfg.bodyLen,1.1*cfg.bodyLen,0.8*cfg.bodyLen);
-  else if(cfg.bodyType==='pear') bodyGeo=new THREE.SphereGeometry(0.7*cfg.bodyLen,10,8);
-  else bodyGeo=new THREE.CapsuleGeometry(0.5*cfg.bodyLen,0.6*cfg.bodyLen,4,8);
+  // BODY — rounded cartoon torso (no boxes)
+  let bodyGeo, bodyScale=new THREE.Vector3(1,1,1);
+  const bl=cfg.bodyLen;
+  if(cfg.bodyType==='tall'){
+    bodyGeo=new THREE.CapsuleGeometry(0.42*bl,0.7*bl,6,14);
+    bodyScale.set(1,1.15,1);
+  } else if(cfg.bodyType==='round'){
+    bodyGeo=new THREE.SphereGeometry(0.62*bl,18,14);
+    bodyScale.set(1.05,0.95,1.05);
+  } else if(cfg.bodyType==='pear'){
+    bodyGeo=new THREE.SphereGeometry(0.6*bl,18,14);
+    bodyScale.set(1.15,0.85,1.15);
+  } else if(cfg.bodyType==='slim'){
+    bodyGeo=new THREE.CapsuleGeometry(0.35*bl,0.8*bl,6,14);
+    bodyScale.set(0.85,1.2,0.85);
+  } else { // chubby
+    bodyGeo=new THREE.SphereGeometry(0.68*bl,18,14);
+    bodyScale.set(1.15,1.0,1.1);
+  }
   body=new THREE.Mesh(bodyGeo, cfg.clothes==='naked'?skinMat:clothMat);
   body.position.y=0.3;
-  if(cfg.bodyType==='pear') body.scale.set(1.1,0.8,1.1);
+  body.scale.copy(bodyScale);
   withOutline(body); charGroup.add(body);
+
+  // NECK — smooth transition
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.18*bl,0.22*bl,0.32*bl,12),skinMat);
+  neck.position.y=0.78*bl; charGroup.add(neck);
+
+  // SHOULDERS — rounded bumps
+  const shoulderMat=cfg.clothes==='naked'?skinMat:clothMat;
+  const lShoulder=new THREE.Mesh(new THREE.SphereGeometry(0.28*bl,12,10),shoulderMat);
+  lShoulder.position.set(-0.5*bl,0.72*bl,0); charGroup.add(lShoulder);
+  const rShoulder=lShoulder.clone(); rShoulder.position.x=0.5*bl; charGroup.add(rShoulder);
 
   // CLOTHES detail (labcoat buttons, etc)
   if(cfg.clothes==='labcoat'){
@@ -531,21 +554,38 @@ function buildCharacter(cfg){
     tie.position.set(0,0.6,0.45); charGroup.add(tie);
   }
 
-  // HEAD
+  // HEAD — all rounded organic shapes, no boxes
   head=new THREE.Group(); head.position.y=1.4*cfg.bodyLen;
-  let headGeo, headMat=skinMat;
-  if(cfg.headType==='box') headGeo=new THREE.BoxGeometry(cfg.headSize,cfg.headSize,cfg.headSize);
-  else if(cfg.headType==='tv'){
-    headGeo=new THREE.BoxGeometry(cfg.headSize*1.1,cfg.headSize*0.9,cfg.headSize*0.8);
-    headMat=new THREE.MeshStandardMaterial({color:0x333333,roughness:0.4});
+  let headGeo, headMat=skinMat, headScale=new THREE.Vector3(1,1,1);
+  const hs=cfg.headSize;
+  if(cfg.headType==='sphere'){
+    headGeo=new THREE.SphereGeometry(hs*0.62,20,16);
+  } else if(cfg.headType==='oval'){
+    headGeo=new THREE.SphereGeometry(hs*0.6,20,16);
+    headScale.set(0.85,1.15,0.9);
+  } else if(cfg.headType==='egg'){
+    headGeo=new THREE.SphereGeometry(hs*0.6,20,16);
+    headScale.set(0.8,1.25,0.82);
+  } else if(cfg.headType==='blob'){
+    headGeo=new THREE.SphereGeometry(hs*0.62,20,16);
+    headScale.set(1.1,0.95,1.05);
+  } else if(cfg.headType==='pear'){
+    headGeo=new THREE.SphereGeometry(hs*0.58,20,16);
+    headScale.set(0.9,1.15,0.95);
+  } else if(cfg.headType==='melon'){
+    headGeo=new THREE.SphereGeometry(hs*0.65,20,16);
+    headScale.set(1.05,0.9,1.05);
+  } else { // onion
+    headGeo=new THREE.SphereGeometry(hs*0.58,20,16);
+    headScale.set(0.82,1.2,0.85);
   }
-  else if(cfg.headType==='bread') headGeo=new THREE.SphereGeometry(cfg.headSize*0.6,10,8);
-  else if(cfg.headType==='toilet') headGeo=new THREE.CylinderGeometry(cfg.headSize*0.5,cfg.headSize*0.6,cfg.headSize,10);
-  else if(cfg.headType==='triangle') headGeo=new THREE.ConeGeometry(cfg.headSize*0.7,cfg.headSize*1.3,4);
-  else if(cfg.headType==='egg') headGeo=new THREE.SphereGeometry(cfg.headSize*0.6,10,8);
-  else headGeo=new THREE.SphereGeometry(cfg.headSize*0.6,12,10);
   const headMesh=new THREE.Mesh(headGeo,headMat);
+  headMesh.scale.copy(headScale);
   withOutline(headMesh); head.add(headMesh);
+  // subtle chin/jaw hint
+  const chin=new THREE.Mesh(new THREE.SphereGeometry(hs*0.22,12,10),skinMat);
+  chin.position.set(0,-hs*0.42,hs*0.18); chin.scale.set(1,0.6,0.7);
+  head.add(chin);
   heads.push(head); charGroup.add(head);
 
   // EYES — floating independent, bigger & cartoonier
@@ -558,12 +598,18 @@ function buildCharacter(cfg){
   leftPupil.position.z=cfg.eyeSize*0.6;
   rightPupil=leftPupil.clone();
   rightPupil.position.z=cfg.eyeSize*0.6;
-  leftEye.add(eyeWhite.clone(), leftPupil);
-  rightEye.add(eyeWhite.clone(), rightPupil);
+  // eye highlights for life
+  const hlMat=new THREE.MeshBasicMaterial({color:0xffffff});
+  const lHL=new THREE.Mesh(new THREE.SphereGeometry(cfg.eyeSize*0.16,8,8),hlMat);
+  lHL.position.set(-cfg.eyeSize*0.2,cfg.eyeSize*0.2,cfg.eyeSize*0.75);
+  const rHL=lHL.clone(); rHL.position.x=cfg.eyeSize*0.2;
+  leftEye.add(eyeWhite.clone(), leftPupil, lHL);
+  rightEye.add(eyeWhite.clone(), rightPupil, rHL);
   head.add(leftEye,rightEye);
 
-  // EYEBROWS — thicker
-  leftBrow=new THREE.Mesh(new THREE.BoxGeometry(cfg.eyeSize*1.8,cfg.eyeSize*0.32,0.05),blackMat);
+  // EYEBROWS — rounded capsule shape
+  leftBrow=new THREE.Mesh(new THREE.CapsuleGeometry(cfg.eyeSize*0.18,cfg.eyeSize*1.5,4,8),blackMat);
+  leftBrow.rotation.z=Math.PI/2;
   leftBrow.position.set(-cfg.eyeDist,cfg.headSize*0.36,cfg.headSize*0.5);
   rightBrow=leftBrow.clone();
   rightBrow.position.x=cfg.eyeDist;
@@ -662,13 +708,6 @@ function buildCharacter(cfg){
     accessory.add(hair);
   }
   head.add(accessory);
-
-  // TV screen face
-  if(cfg.headType==='tv'){
-    const screen=new THREE.Mesh(new THREE.PlaneGeometry(cfg.headSize*0.8,cfg.headSize*0.6),
-      new THREE.MeshBasicMaterial({color:0x00ff66}));
-    screen.position.z=cfg.headSize*0.41; head.add(screen);
-  }
 
   // LIMBS — rubber hose (thin cylinders)
   function makeLimb(side, isArm){
